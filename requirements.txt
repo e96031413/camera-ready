@@ -15,10 +15,10 @@
 # Also requires: playwright install chromium
 playwright>=1.40
 
-# --- Image measurement for posters/slides (scripts/poster_*.py) ---
+# --- Image measurement for posters/slides (scripts/poster_*.py, pptx_thumbnail.py) ---
 Pillow>=10.0
 
-# --- PowerPoint OMML math injection (scripts/pptx_inject_omml.py) ---
+# --- PowerPoint OMML math injection & overlap checks (scripts/pptx_inject_omml.py, pptx_check_overlaps.py) ---
 # Also requires the `pandoc` binary on PATH.
 lxml>=5.0
 

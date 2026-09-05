@@ -93,10 +93,15 @@ def verify_arxiv(eprint: str) -> dict:
     if not body:
         return {"layer": 1, "status": "api_error", "detail": "arXiv API unreachable"}
 
-    if "<entry>" in body:
-        title_match = re.search(r"<title>(.*?)</title>", body, re.DOTALL)
+    # 2026-09-05-v2: read the title inside <entry>, not the feed <title>. The Atom
+    # feed opens with "arXiv Query: ...", so matching the first <title> compared the
+    # entry against the query string and drove every real arXiv paper to layer 3.
+    entry_match = re.search(r"<entry>(.*?)</entry>", body, re.DOTALL)
+    if entry_match:
+        title_match = re.search(r"<title>(.*?)</title>", entry_match.group(1), re.DOTALL)
         if title_match:
-            return {"layer": 1, "status": "found", "title": title_match.group(1).strip()}
+            title = re.sub(r"\s+", " ", title_match.group(1)).strip()
+            return {"layer": 1, "status": "found", "title": title}
 
     return {"layer": 1, "status": "not_found", "detail": f"arXiv ID {clean_id} not found"}
 
@@ -167,7 +172,7 @@ def classify_entry(entry: dict) -> tuple[str, list[dict]]:
                     return "SUSPICIOUS", results
             else:
                 return "VERIFIED", results
-        time.sleep(0.5)  # arXiv rate limit: 1 req / 3s
+        time.sleep(3.0)  # arXiv asks for 1 request per 3 seconds
 
     # Layer 2: DOI
     if entry.get("doi"):

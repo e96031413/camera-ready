@@ -9,6 +9,8 @@ Pipeline:
 Usage:
   python pptx_inject_omml.py input.pptx formulas.json output.pptx
 """
+from __future__ import annotations
+
 import json
 import os
 import re
@@ -23,8 +25,7 @@ from pathlib import Path
 try:
     from lxml import etree
 except ImportError:
-    print("ERROR: lxml required. Install: pip install lxml", file=sys.stderr)
-    sys.exit(1)
+    etree = None
 
 NS = {
     "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
@@ -34,8 +35,9 @@ NS = {
     "mc": "http://schemas.openxmlformats.org/markup-compatibility/2006",
     "a14": "http://schemas.microsoft.com/office/drawing/2010/main",
 }
-for prefix, uri in NS.items():
-    etree.register_namespace(prefix, uri)
+if etree is not None:
+    for prefix, uri in NS.items():
+        etree.register_namespace(prefix, uri)
 
 PLACEHOLDER_RE = re.compile(r"\{\{MATH:([a-zA-Z0-9_-]+)\}\}")
 A_NS = NS["a"]
@@ -209,6 +211,10 @@ def _ensure_namespaces(tree):
 
 def inject_omml_into_pptx(pptx_path: str, formulas: dict, output_path: str) -> dict:
     """Replace {{MATH:id}} placeholders with OMML math. Returns stats dict."""
+    if etree is None:
+        print("ERROR: lxml required. Install: pip install lxml", file=sys.stderr)
+        return {"success": 0, "failed": len(formulas), "skipped": 0, "failed_ids": list(formulas.keys())}
+
     if os.path.abspath(pptx_path) != os.path.abspath(output_path):
         shutil.copy2(pptx_path, output_path)
 
@@ -289,6 +295,10 @@ def main():
 
     if len(sys.argv) < 4:
         print("Usage: python pptx_inject_omml.py input.pptx formulas.json output.pptx")
+        sys.exit(1)
+
+    if etree is None:
+        print("ERROR: lxml required. Install: pip install lxml", file=sys.stderr)
         sys.exit(1)
 
     if not _check_pandoc():

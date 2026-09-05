@@ -25,8 +25,7 @@ from pathlib import Path
 try:
     from lxml import etree
 except ImportError:
-    print("ERROR: lxml required. Install: pip install lxml", file=sys.stderr)
-    sys.exit(1)
+    etree = None
 
 NS = {
     "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
@@ -299,6 +298,9 @@ def check_slide(elements: list[BBox], slide_num: int,
 
 
 def check_pptx(pptx_path: str, min_overlap=0.01, min_gap=0.05) -> list[Issue]:
+    if etree is None:
+        print("ERROR: lxml required. Install: pip install lxml", file=sys.stderr)
+        sys.exit(1)
     all_issues = []
     slide_re = re.compile(r"^ppt/slides/slide(\d+)\.xml$")
     with zipfile.ZipFile(pptx_path, "r") as zf:
@@ -354,6 +356,10 @@ def main():
 
     if not Path(args.pptx).exists():
         print(f"ERROR: file not found: {args.pptx}", file=sys.stderr)
+        sys.exit(1)
+
+    if etree is None:
+        print("ERROR: lxml required. Install: pip install lxml", file=sys.stderr)
         sys.exit(1)
 
     issues = check_pptx(args.pptx, args.min_overlap, args.min_gap)

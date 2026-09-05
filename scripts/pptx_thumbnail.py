@@ -13,8 +13,9 @@ from pathlib import Path
 try:
     from PIL import Image, ImageDraw, ImageFont
 except ImportError:
-    print("Error: Pillow required. pip install Pillow", file=sys.stderr)
-    sys.exit(1)
+    Image = None
+    ImageDraw = None
+    ImageFont = None
 
 
 def main():
@@ -24,6 +25,10 @@ def main():
 
     if len(sys.argv) < 2:
         print(f"Usage: {sys.argv[0]} input.pptx [output_prefix] [--cols N]", file=sys.stderr)
+        sys.exit(1)
+
+    if Image is None:
+        print("Error: Pillow required. pip install Pillow", file=sys.stderr)
         sys.exit(1)
 
     pptx_path = sys.argv[1]
