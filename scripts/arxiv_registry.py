@@ -552,6 +552,67 @@ def rewrite_bibtex_key(bibtex_text: str, new_key: str) -> str:
     return bibtex_text[:start] + new_key + bibtex_text[end:]
 
 
+# 2026-09-05-v2: fetched titles reach LaTeX verbatim, so a bare & or % in a
+# title (arXiv has plenty) breaks the build. Escaping happens on the way out of
+# the registry, never on the way in: the database keeps what the source served.
+_VERBATIM_FIELDS = frozenset(
+    {
+        "url",
+        "doi",
+        "eprint",
+        "archiveprefix",
+        "primaryclass",
+        "biburl",
+        "bibsource",
+        "timestamp",
+        "file",
+    }
+)
+_ESCAPE_CHARS = "&%#_"
+_FIELD_LINE_RE = re.compile(r"^(\s*)([A-Za-z][A-Za-z0-9]*)(\s*=\s*)(.*)$")
+
+
+def _escape_outside_math(value: str) -> str:
+    """Escape LaTeX specials, leaving $...$ math and existing escapes alone."""
+    out: list[str] = []
+    in_math = False
+    i = 0
+    while i < len(value):
+        ch = value[i]
+        if ch == "\\" and i + 1 < len(value):
+            out.append(value[i : i + 2])
+            i += 2
+            continue
+        if ch == "$":
+            in_math = not in_math
+            out.append(ch)
+            i += 1
+            continue
+        if not in_math and ch in _ESCAPE_CHARS:
+            out.append("\\" + ch)
+            i += 1
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
+def escape_bibtex_latex(bibtex_text: str) -> str:
+    """Escape LaTeX specials in the value of every non-verbatim BibTeX field."""
+    lines: list[str] = []
+    for line in bibtex_text.split("\n"):
+        match = _FIELD_LINE_RE.match(line)
+        if match is None:
+            lines.append(line)
+            continue
+        indent, field, sep, value = match.groups()
+        if field.lower() in _VERBATIM_FIELDS:
+            lines.append(line)
+            continue
+        lines.append(indent + field + sep + _escape_outside_math(value))
+    return "\n".join(lines)
+
+
 def ensure_work(conn: sqlite3.Connection, *, arxiv_id: str, timeout_s: int) -> int | None:
     row = conn.execute("SELECT work_id FROM works WHERE arxiv_id = ?;", (arxiv_id,)).fetchone()
     if row is not None:
@@ -719,14 +780,16 @@ def cmd_fetch_bibtex(args: argparse.Namespace) -> int:
                 print(f"warning: empty BibTeX for {arxiv_id}", file=sys.stderr)
                 continue
 
+            escaped = escape_bibtex_latex(bibtex_text)
+
             if args.out_bib:
                 out_path = Path(args.out_bib).resolve()
                 out_path.parent.mkdir(parents=True, exist_ok=True)
                 with out_path.open("a", encoding="utf-8") as f:
-                    f.write(bibtex_text.rstrip() + "\n\n")
+                    f.write(escaped.rstrip() + "\n\n")
 
             if args.print_bibtex:
-                print(bibtex_text.rstrip())
+                print(escaped.rstrip())
                 print()
 
             if args.sleep_s > 0:
@@ -893,7 +956,7 @@ def cmd_export_bibtex(args: argparse.Namespace) -> int:
                 continue
 
             cite_key = ensure_citation_key(conn, work_id=work_id)
-            rewritten = rewrite_bibtex_key(bibtex_text, cite_key).rstrip() + "\n"
+            rewritten = escape_bibtex_latex(rewrite_bibtex_key(bibtex_text, cite_key)).rstrip() + "\n"
 
             if out_path is None:
                 print(rewritten)

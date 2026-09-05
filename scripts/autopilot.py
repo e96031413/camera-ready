@@ -112,7 +112,7 @@ PHASES: list[Phase] = [
     Phase(
         name="draft",
         goal="Write the manuscript, one issue at a time.",
-        exit_condition="the manuscript exists and every issues-CSV row is marked DONE",
+        exit_condition="the manuscript exists and every issues-CSV row is DONE or SKIP",
         next_actions=[
             "Close issues in dependency order; do not start a row whose Depends_On is open.",
             "python scripts/compile_paper.py --help      # it must build before it is reviewed",
@@ -274,10 +274,18 @@ def check_draft(project_dir: Path, state: dict) -> tuple[bool, str]:
     path, rows = read_issue_rows(project_dir)
     if path is None:
         return False, "no issues CSV to check against"
-    open_rows = [row.get("ID", "?") for row in rows if (row.get("Status") or "").strip().upper() != "DONE"]
+    # 2026-09-05-v2: SKIP is a terminal status in the issues-CSV schema and in
+    # validate_paper_issues.py. Counting it as open forced every run that dropped
+    # the slides, video or poster rows through a --force override.
+    closed = {"DONE", "SKIP"}
+    open_rows = [
+        row.get("ID", "?") for row in rows if (row.get("Status") or "").strip().upper() not in closed
+    ]
     if open_rows:
         return False, f"{len(open_rows)} issue(s) still open: {', '.join(open_rows[:8])}"
-    return True, f"{manuscript.name} written, all {len(rows)} issues closed"
+    skipped = sum(1 for row in rows if (row.get("Status") or "").strip().upper() == "SKIP")
+    tail = f" ({skipped} skipped)" if skipped else ""
+    return True, f"{manuscript.name} written, all {len(rows)} issues closed{tail}"
 
 
 def check_verify(project_dir: Path, state: dict) -> tuple[bool, str]:
@@ -326,6 +334,16 @@ def check_revise(project_dir: Path, state: dict) -> tuple[bool, str]:
             unresolved.append(match.group(1))
     if unresolved:
         return False, f"{len(unresolved)} comment(s) without a Resolution: {', '.join(unresolved[:8])}"
+
+    # 2026-09-05-v2: a Resolution line is a sentence; the issues CSV is the
+    # record. When a rebuttal-gate report exists it decides, because it checked
+    # that every comment promising a change has a row behind it.
+    rebuttal = project_dir / "notes" / "rebuttal-gate.md"
+    if rebuttal.is_file():
+        report = rebuttal.read_text(encoding="utf-8", errors="replace")
+        if re.search(r"^- Verdict:\s*FAIL", report, re.MULTILINE):
+            return False, "notes/rebuttal-gate.md reports FAIL: a comment has no issues row"
+
     return True, f"all {len(headings)} comments resolved"
 
 

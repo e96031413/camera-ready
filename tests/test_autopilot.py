@@ -170,6 +170,36 @@ class TestDraftAndReviewChecks:
         passed, _ = ap.check_draft(project, state_of(project))
         assert passed
 
+    def test_a_failing_rebuttal_gate_blocks_the_revise_phase(self, project):
+        (project / "notes" / "review-comments.md").write_text(
+            "## 1. A comment\n\nResolution: fixed in section 3.\n", encoding="utf-8"
+        )
+        (project / "notes" / "rebuttal-gate.md").write_text(
+            "# Rebuttal Gate Report\n\n- Verdict: FAIL\n", encoding="utf-8"
+        )
+        passed, detail = ap.check_revise(project, state_of(project))
+        assert not passed
+        assert "rebuttal-gate" in detail
+
+    def test_a_passing_rebuttal_gate_lets_the_revise_phase_close(self, project):
+        (project / "notes" / "review-comments.md").write_text(
+            "## 1. A comment\n\nResolution: fixed in section 3.\n", encoding="utf-8"
+        )
+        (project / "notes" / "rebuttal-gate.md").write_text(
+            "# Rebuttal Gate Report\n\n- Verdict: PASS\n", encoding="utf-8"
+        )
+        passed, _ = ap.check_revise(project, state_of(project))
+        assert passed
+
+    def test_skipped_issues_do_not_block_the_draft_phase(self, project):
+        (project / "main.md").write_text("text", encoding="utf-8")
+        (project / "issues" / "i.csv").write_text(
+            "ID,Status\nW1,DONE\nSL4,SKIP\nVD1,skip\n", encoding="utf-8"
+        )
+        passed, detail = ap.check_draft(project, state_of(project))
+        assert passed
+        assert "2 skipped" in detail
+
     def test_a_failing_gate_blocks_verification(self, project):
         (project / "notes" / "verification-report.md").write_text(
             "- citations: PASS\n- format: FAIL\n", encoding="utf-8"
