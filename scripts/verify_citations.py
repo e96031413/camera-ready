@@ -34,6 +34,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from citation_cache import (
+    CitationCache,
+    LocalCorpus,
+    add_cache_arguments,
+    cache_from_args,
+    corpus_from_args,
+)
 from paper_utils import now_iso
 
 
@@ -155,9 +162,48 @@ def verify_title_semantic_scholar(title: str) -> dict:
     return {"layer": 3, "status": "not_found", "detail": "no matching title in Semantic Scholar"}
 
 
-def classify_entry(entry: dict) -> tuple[str, list[dict]]:
-    """Run 4-layer verification and return (classification, layer_results)."""
+def classify_entry(
+    entry: dict,
+    *,
+    cache: CitationCache | None = None,
+    corpus: LocalCorpus | None = None,
+    offline: bool = False,
+) -> tuple[str, list[dict]]:
+    """Run 4-layer verification and return (classification, layer_results).
+
+    2026-09-05-v2: a local corpus answers first, then a verdict this cache
+    recorded from a live source in an earlier run. Both are evidence that a
+    source once returned this work; neither can turn an unknown entry into a
+    verified one. Under --offline with no local evidence the entry is SKIPPED,
+    never HALLUCINATED: a network nobody asked is not a source that denied it.
+    """
     results: list[dict] = []
+
+    identity = entry.get("eprint") or entry.get("doi") or entry.get("title") or entry["key"]
+
+    # Layer 0a: local corpus.
+    if corpus is not None and corpus.available:
+        record = None
+        if entry.get("eprint"):
+            record = corpus.by_arxiv_id(entry["eprint"])
+        if record is None and entry.get("doi"):
+            record = corpus.by_doi(entry["doi"])
+        if record is None and entry.get("title"):
+            record = corpus.by_title(entry["title"])
+        if record is not None:
+            results.append({"layer": 0, "status": "found", "detail": "local corpus"})
+            return "VERIFIED", results
+
+    # Layer 0b: cached verdict.
+    if cache is not None:
+        cached = cache.get("verify", identity)
+        if cached in ("VERIFIED", "SUSPICIOUS"):
+            results.append({"layer": 0, "status": "found", "detail": "cached verdict"})
+            return str(cached), results
+
+    if offline:
+        results.append({"layer": 0, "status": "skipped", "detail": "offline, no local evidence"})
+        return "SKIPPED", results
 
     # Layer 1: arXiv
     if entry.get("eprint"):
@@ -206,6 +252,7 @@ def main() -> int:
     parser.add_argument("--remove-hallucinated", action="store_true", help="Remove HALLUCINATED entries")
     parser.add_argument("--out-bib", default=None, help="Write cleaned .bib file (requires --remove-hallucinated)")
     parser.add_argument("--max-entries", type=int, default=60, help="Max entries to verify (default: 60)")
+    add_cache_arguments(parser)
     args = parser.parse_args()
 
     bib_path = Path(args.bib_file)
@@ -218,7 +265,10 @@ def main() -> int:
     if not entries:
         return fail("no BibTeX entries found")
 
-    print(f"Verifying {min(len(entries), args.max_entries)} of {len(entries)} citations...")
+    cache = cache_from_args(args, bib_path.parent)
+    corpus = corpus_from_args(args)
+    mode = " [offline]" if args.offline else ""
+    print(f"Verifying {min(len(entries), args.max_entries)} of {len(entries)} citations...{mode}")
 
     results: dict[str, list] = {"VERIFIED": [], "SUSPICIOUS": [], "HALLUCINATED": [], "SKIPPED": []}
     entry_classifications: list[tuple[dict, str, list]] = []
@@ -227,7 +277,14 @@ def main() -> int:
         title_short = entry.get("title", entry["key"])[:60]
         print(f"  [{i + 1}/{min(len(entries), args.max_entries)}] {title_short}...", end=" ")
 
-        classification, layers = classify_entry(entry)
+        classification, layers = classify_entry(
+            entry, cache=cache, corpus=corpus, offline=args.offline
+        )
+        # Record only verdicts a live source supported, so the cache cannot
+        # harden a transient failure into a permanent answer.
+        if classification in ("VERIFIED", "SUSPICIOUS"):
+            identity = entry.get("eprint") or entry.get("doi") or entry.get("title") or entry["key"]
+            cache.put("verify", identity, classification)
         results[classification].append(entry["key"])
         entry_classifications.append((entry, classification, layers))
         print(classification)

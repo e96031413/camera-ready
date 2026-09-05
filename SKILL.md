@@ -88,7 +88,9 @@ a buildable skeleton with no prose in it and starts a run at phase 1.
 8. **Memory isolation**: When using role-based sub-workflows, enforce per-role read/write scopes (`references/agentic-workflow.md` § 0.5).
 9. **Two-stage writing**: For each writing issue, create a bullet outline (Stage 1) BEFORE writing prose (Stage 2). See `references/writing-style.md`.
 10. **Discipline first**: Before scaffolding, resolve the discipline, citation style and output format (Gate -2). A CS default applied to a clinical or humanities paper fails the wrong checks and skips the right ones.
-11. **Citation anti-hallucination**: NEVER generate BibTeX from memory. Use `scripts/fetch_bibtex.py` (DBLP/CrossRef) and `scripts/arxiv_registry.py fetch-bibtex` (arXiv). Unverified citations use `PLACEHOLDER_` prefix. See `references/citation-workflow.md`.
+11. **Citation anti-hallucination**: NEVER generate BibTeX from memory. Use `scripts/fetch_bibtex.py` (DBLP/CrossRef) and `scripts/arxiv_registry.py fetch-bibtex` (arXiv). Unverified citations use `PLACEHOLDER_` prefix. See `references/citation-workflow.md`. Both accept `--cache`, `--offline` and `--corpus` (`scripts/citation_cache.py`): a cached or locally indexed answer survives an API outage, and neither can invent an entry.
+12. **Numbers are evidence too**: bind every table or figure whose values come from a computation in `notes/data-bindings.json` and check it with `scripts/data_gate.py`. A number the analysis does not produce is a defect of the same kind as a fabricated citation.
+13. **Provenance is not alignment**: `scripts/citation_alignment.py` scores each citing sentence against the cited abstract and ranks the weakest pairings. A low score means read that pairing, never delete the citation.
 
 ### Gate -2: Discipline, Style and Format
 
@@ -159,6 +161,17 @@ For each issue: **Outline** (Stage 1: bullet outline with key points + citations
 -> **Verify** (web search before adding to `ref.bib`; use `PLACEHOLDER_` prefix for unverified) -> **Update** (mark DONE).
 Compile after meaningful changes.
 
+### Phase 2.5: Data and Alignment Gates
+```bash
+python scripts/data_gate.py --project-dir <paper_dir> --init      # once, then fill in the bindings
+python scripts/data_gate.py --project-dir <paper_dir>             # re-runs each analysis and reconciles its numbers
+python scripts/citation_alignment.py --project-dir <paper_dir>    # citing sentence against cited abstract
+```
+`data_gate.py` is blocking: a number the regenerated data does not contain fails
+the gate. `citation_alignment.py` is advisory unless `--strict`; read its lowest
+scores before the review phase, because a misattributed citation is a real
+reference used as a false witness.
+
 ### Phase 2.3-2.75: Quality Checks
 Anti-AI scan, integrity gate, reviewer loop, selfloops, self-review, rhythm refinement. See [references/quality-phases.md](references/quality-phases.md).
 
@@ -190,6 +203,25 @@ Anti-AI scan, integrity gate, reviewer loop, selfloops, self-review, rhythm refi
    built document. For a Word target:
    `python scripts/export_document.py --input <manuscript> --style <style>`, then
    open the result -- pandoc does not translate every construct and fails quietly.
+
+### Phase 3.2: Venue Rules Check (conference papers)
+```bash
+python scripts/venue_rules_sync.py --venue <venue> --write-proposal
+```
+Diffs `assets/venues/<venue>.yaml` against the venue's published author guide and
+writes a proposal. It never edits the config: a scraped page is evidence, not
+authority. Run it before trusting `format_gate.py` on a new edition of a venue.
+
+### Phase 3.3: Adversarial Review and Rebuttal
+```bash
+python scripts/rebuttal_gate.py --project-dir <paper_dir> --scaffold      # Reviewer 1/2 + Area Chair sections
+python scripts/rebuttal_gate.py --project-dir <paper_dir>                 # every comment tracked or declined
+python scripts/rebuttal_gate.py --project-dir <paper_dir> --emit-issues   # turn untracked comments into TODO rows
+```
+Fill the scaffold from the review roles, then answer in the revise phase. The
+gate requires each numbered comment to have an issues row behind it or a
+Resolution that declines it in words; `autopilot.py` reads the report and refuses
+to leave `revise` while it says FAIL.
 
 ### Phase 3.5-3.7: Evo-Memory + Autoresearch
 Cross-cycle learning and self-optimization. See [references/quality-phases.md](references/quality-phases.md).
@@ -233,7 +265,9 @@ Standalone Beamer/Poster/PowerPoint (no paper), existing paper (no re-scaffold),
 
 **Do directly** (low-risk, reversible, no external side effects):
 - Run compilation: `compile_paper.py`, `compile_slides.py`
-- Run validation/audit scripts: `validate_paper_issues.py`, `bibtex_audit.py`, `anti_ai_scan.py`, `integrity_gate.py`, `verify_citations.py`, `paper_privacy_scan.py`, `workspace_status.py`, `paper_checklist.py`, `format_gate.py`, `anonymity_check.py`, `venue_config.py`
+- Run validation/audit scripts: `validate_paper_issues.py`, `bibtex_audit.py`, `anti_ai_scan.py`, `integrity_gate.py`, `verify_citations.py`, `paper_privacy_scan.py`, `workspace_status.py`, `paper_checklist.py`, `format_gate.py`, `anonymity_check.py`, `venue_config.py`, `citation_alignment.py`, `rebuttal_gate.py`, `benchmark_compare.py`, `citation_cache.py`
+- Run `data_gate.py`: it executes the commands named in `notes/data-bindings.json`. Read that manifest before the first run — you are running whatever it says.
+- Check a venue against its author guide: `venue_rules_sync.py` (writes a proposal under `notes/`; never edits `assets/venues/*.yaml`)
 - Set up a venue: `venue_setup.py` (writes `notes/venue.md`; downloads a public style file from the official URL)
 - Build the arXiv submission tarball: `arxiv_package.py` (writes files only; it cannot and does not upload)
 - Run selfloops: `logic_selfloop.py`, `argument_selfloop.py`, `voice_selfloop.py`

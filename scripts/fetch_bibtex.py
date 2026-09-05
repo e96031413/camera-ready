@@ -26,6 +26,14 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+from citation_cache import (
+    CitationCache,
+    LocalCorpus,
+    add_cache_arguments,
+    cache_from_args,
+    corpus_from_args,
+)
+
 
 def fail(message: str) -> int:
     print(f"error: {message}", file=sys.stderr)
@@ -98,14 +106,48 @@ def fetch_from_crossref(doi: str) -> str | None:
     return None
 
 
-def fetch_bibtex(title: str, author: str = "", doi: str = "") -> tuple[str | None, str]:
-    """Fetch BibTeX using 3-step fallback chain.
+def fetch_bibtex(
+    title: str,
+    author: str = "",
+    doi: str = "",
+    *,
+    cache: CitationCache | None = None,
+    corpus: LocalCorpus | None = None,
+    offline: bool = False,
+) -> tuple[str | None, str]:
+    """Fetch BibTeX using the fallback chain.
 
-    Returns (bibtex_string, source) where source is 'dblp', 'crossref', or 'verify'.
+    2026-09-05-v2: a local corpus and a lookup cache sit in front of the network,
+    and the cache also answers when the network is unavailable. Neither can
+    invent an entry: a miss still returns (None, "verify").
+
+    Returns (bibtex_string, source) where source is 'corpus', 'cache', 'dblp',
+    'crossref' or 'verify'.
     """
+    query = title or doi
+
+    # Step 0a: local corpus, when one was supplied.
+    if corpus is not None and corpus.available:
+        record = corpus.by_doi(doi) if doi else None
+        if record is None and title:
+            record = corpus.by_title(title)
+        if record and record.get("bibtex"):
+            return str(record["bibtex"]), "corpus"
+
+    # Step 0b: an earlier successful lookup for the same query.
+    if cache is not None and query:
+        cached = cache.get("bibtex", query)
+        if cached:
+            return str(cached), "cache"
+
+    if offline:
+        return None, "verify"
+
     # Step A: DBLP
     bib = fetch_from_dblp(title, author)
     if bib:
+        if cache is not None and query:
+            cache.put("bibtex", query, bib)
         return bib, "dblp"
 
     # Brief pause to be polite to APIs
@@ -115,6 +157,8 @@ def fetch_bibtex(title: str, author: str = "", doi: str = "") -> tuple[str | Non
     if doi:
         bib = fetch_from_crossref(doi)
         if bib:
+            if cache is not None and query:
+                cache.put("bibtex", query, bib)
             return bib, "crossref"
 
     # Step B alt: Try arXiv DOI if title contains arXiv ID
@@ -123,6 +167,8 @@ def fetch_bibtex(title: str, author: str = "", doi: str = "") -> tuple[str | Non
         arxiv_doi = f"10.48550/arXiv.{arxiv_match.group(1)}"
         bib = fetch_from_crossref(arxiv_doi)
         if bib:
+            if cache is not None and query:
+                cache.put("bibtex", query, bib)
             return bib, "crossref"
 
     # Step C: Mark [VERIFY]
@@ -153,6 +199,7 @@ def main() -> int:
     parser.add_argument("--doi", default="", help="DOI for CrossRef lookup")
     parser.add_argument("--scan-tex", default=None, help="Scan .tex file for citation keys")
     parser.add_argument("--out-bib", default=None, help="Append found BibTeX to this .bib file")
+    add_cache_arguments(parser)
     args = parser.parse_args()
 
     if args.scan_tex:
@@ -167,8 +214,21 @@ def main() -> int:
     if not args.title and not args.doi:
         return fail("provide --title and/or --doi")
 
-    print(f"Searching: {args.title[:80]}")
-    bib, source = fetch_bibtex(args.title, args.author, args.doi)
+    cache = cache_from_args(args)
+    corpus = corpus_from_args(args)
+    if corpus.path is not None and not corpus.available:
+        print(f"  warning: corpus has no usable records: {corpus.path.name}", file=sys.stderr)
+
+    print(f"Searching: {args.title[:80]}" + (" [offline]" if args.offline else ""))
+    bib, source = fetch_bibtex(
+        args.title,
+        args.author,
+        args.doi,
+        cache=cache,
+        corpus=corpus,
+        offline=args.offline,
+    )
+    cache.close()
 
     if bib:
         print(f"  Source: {source}")
@@ -182,7 +242,8 @@ def main() -> int:
                 f.write(f"\n% Fetched from {source}\n{bib}\n")
             print(f"\nAppended to: {out_path}")
     else:
-        print(f"  Source: [VERIFY] — not found in DBLP or CrossRef")
+        reason = "offline and not in cache or corpus" if args.offline else "not found in DBLP or CrossRef"
+        print(f"  Source: [VERIFY] — {reason}")
         print(f"  Manually verify this citation before including in paper")
 
         if args.out_bib:
