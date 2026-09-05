@@ -36,8 +36,8 @@ features.
 ### Get the files
 
 ```bash
-git clone https://github.com/e96031413/SKILLS.git
-cd SKILLS/camera-ready
+git clone https://github.com/e96031413/camera-ready.git
+cd camera-ready
 ```
 
 **To use it as a Claude Code skill**, copy the whole folder into your skills

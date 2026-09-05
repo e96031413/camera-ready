@@ -18,7 +18,7 @@ compatibility: >
   model API for cross-model review.
 metadata:
   short-description: Gated academic paper workflow with verified citations, across disciplines and formats
-  homepage: https://github.com/e96031413/SKILLS
+  homepage: https://github.com/e96031413/camera-ready
 ---
 
 # Gated Academic Paper Workflow

@@ -69,8 +69,8 @@ CameraReady 核心流程**仅需 Python 3.10+**（全流程完全基于 Python �
 
 ```bash
 # 1. 克隆本仓库
-git clone https://github.com/e96031413/SKILLS.git
-cd SKILLS/camera-ready
+git clone https://github.com/e96031413/camera-ready.git
+cd camera-ready
 
 # 2. 列出支持的学科并快速初始化项目
 python scripts/quick_start.py --list

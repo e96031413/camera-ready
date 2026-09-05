@@ -69,8 +69,8 @@ CameraReady requires **only Python 3.10+** (standard library only for the core p
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/e96031413/SKILLS.git
-cd SKILLS/camera-ready
+git clone https://github.com/e96031413/camera-ready.git
+cd camera-ready
 
 # 2. View available disciplines and quick-scaffold a project
 python scripts/quick_start.py --list

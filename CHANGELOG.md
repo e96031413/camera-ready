@@ -218,5 +218,5 @@ adds is everything needed to install it, submit with it, and contribute to it.
 
 - The empty `tasks/` directory.
 
-[Unreleased]: https://github.com/e96031413/SKILLS/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/e96031413/SKILLS/releases/tag/v0.1.0
+[Unreleased]: https://github.com/e96031413/camera-ready/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/e96031413/camera-ready/releases/tag/v0.1.0

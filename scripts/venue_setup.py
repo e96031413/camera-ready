@@ -26,7 +26,7 @@ from pathlib import Path
 
 from venue_config import VenueConfigError, list_venues, load_venue
 
-USER_AGENT = "CameraReady/0.1 (paper tooling; +https://github.com/e96031413/SKILLS)"
+USER_AGENT = "CameraReady/0.1 (paper tooling; +https://github.com/e96031413/camera-ready)"
 DOWNLOAD_TIMEOUT = 30
 MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024
 

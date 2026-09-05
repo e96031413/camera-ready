@@ -7,8 +7,8 @@ reference documents**.
 ## Development setup
 
 ```bash
-git clone https://github.com/e96031413/SKILLS.git
-cd SKILLS/camera-ready
+git clone https://github.com/e96031413/camera-ready.git
+cd camera-ready
 
 python -m venv .venv
 # Windows:  .venv\Scripts\activate
