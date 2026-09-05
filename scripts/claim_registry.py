@@ -28,6 +28,97 @@ _SUBSECTION_RE = re.compile(r"\\subsection\{([^}]+)\}")
 _COMMENT_RE = re.compile(r"(?<!\\)%.*$")
 _BIB_STOP_RE = re.compile(r"\\bibliography\{|\\begin\{thebibliography\}", re.IGNORECASE)
 
+# 2026-09-05-v2: structural pre-pass. Sentence splitting over raw LaTeX lifted
+# preambles, TikZ bodies and table rows into the registry as "claims". Those are
+# markup, not assertions, and a registry a person cannot read is a registry
+# nobody fills in. Drop the non-prose regions before any sentence is cut.
+_BEGIN_DOC_RE = re.compile(r"\\begin\{document\}")
+_ENV_BEGIN_RE = re.compile(r"\\begin\{([A-Za-z][A-Za-z0-9*]*)\}")
+_ENV_END_RE = re.compile(r"\\end\{([A-Za-z][A-Za-z0-9*]*)\}")
+
+# Environments whose body is markup or display material, never prose to verify.
+NON_PROSE_ENVIRONMENTS = frozenset(
+    {
+        "tikzpicture",
+        "pgfpicture",
+        "picture",
+        "figure",
+        "figure*",
+        "table",
+        "table*",
+        "tabular",
+        "tabularx",
+        "tabu",
+        "longtable",
+        "threeparttable",
+        "equation",
+        "equation*",
+        "align",
+        "align*",
+        "aligned",
+        "eqnarray",
+        "eqnarray*",
+        "multline",
+        "multline*",
+        "gather",
+        "gather*",
+        "split",
+        "IEEEeqnarray",
+        "algorithm",
+        "algorithmic",
+        "verbatim",
+        "lstlisting",
+        "minted",
+        "IEEEkeywords",
+        "thebibliography",
+        "forest",
+    }
+)
+
+# A cleaned sentence still carrying control sequences is markup residue.
+_RESIDUAL_MACRO_RE = re.compile(r"\\[A-Za-z]+")
+# A finite verb is the cheapest signal that a fragment asserts something.
+_ASSERTION_VERB_RE = re.compile(
+    r"(?i)(?<![A-Za-z])("
+    r"is|are|was|were|be|been|has|have|had|does|do|did|can|cannot|could|will|would|"
+    r"shows?|showed|reports?|reported|finds?|found|measures?|measured|produces?|produced|"
+    r"requires?|required|returns?|returned|refuses?|refused|passes?|passed|fails?|failed|"
+    r"runs?|ran|takes?|took|gives?|gave|remains?|remained|exceeds?|exceeded|reaches?|reached|"
+    r"contains?|contained|holds?|held|makes?|made|treats?|treated|counts?|counted|"
+    r"records?|recorded|compiles?|compiled|scans?|scanned|uses?|used|drops?|dropped|"
+    r"flags?|flagged|blocks?|blocked|exits?|exited|writes?|wrote|reads?|adds?|added|"
+    r"removes?|removed|verifies|verified|detects?|detected|escapes?|escaped|"
+    r"accepts?|accepted|closes?|closed|needs?|needed|allows?|allowed|prevents?|prevented|"
+    r"covers?|covered|includes?|included|applies|applied|appears?|appeared|"
+    r"reports|refuses|advances?|advanced|journals?|journaled"
+    r")(?![A-Za-z])"
+)
+
+# Title and author blocks are metadata; their braced arguments can span lines.
+_FRONTMATTER_MACROS = ("title", "author", "thanks", "IEEEauthorblockN", "IEEEauthorblockA")
+
+
+def drop_frontmatter_macros(text: str) -> str:
+    """Remove \\title/\\author-style commands together with their braced argument."""
+    for name in _FRONTMATTER_MACROS:
+        pattern = "\\" + name + "{"
+        while True:
+            start = text.find(pattern)
+            if start < 0:
+                break
+            depth = 0
+            i = start + len(pattern) - 1
+            while i < len(text):
+                if text[i] == "{":
+                    depth += 1
+                elif text[i] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                i += 1
+            text = text[:start] + text[i + 1 :] if i < len(text) else text[:start]
+    return text
+
 # \cite, \citet, \citep, \citeauthor, etc. (optional args supported)
 _CITE_CMD_RE = re.compile(r"\\cite[a-zA-Z]*\s*(?:\[[^\]]*\]\s*)*\{([^}]+)\}")
 _CITE_PLACEHOLDER_RE = re.compile(r"\[\[CITE:([^\]]+)\]\]")
@@ -90,6 +181,10 @@ def clean_sentence(sentence: str) -> str:
     s = re.sub(r"\\href\{[^}]*\}\{([^}]*)\}", r"\1", s)
     s = re.sub(r"\\(emph|textit|textbf|texttt|underline)\{([^}]*)\}", r"\2", s)
     s = s.replace("{", "").replace("}", "")
+    # Spacing macros and escaped specials are typography, not markup residue.
+    s = re.sub(r"\\[,;:!]", " ", s)
+    s = re.sub(r"\\([&_#$%{}])", r"\1", s)
+    s = re.sub(r"--+", "-", s)
     s = _WHITESPACE_RE.sub(" ", s).strip()
     return s
 
@@ -103,13 +198,85 @@ def split_sentences(text: str) -> list[str]:
     return [p.strip() for p in parts if p.strip()]
 
 
+def scan_prose_lines(tex_text: str, *, keep_floats: bool = False) -> list[str]:
+    """Per-line prose content, with dropped lines returned as empty strings.
+
+    The scanner is structural rather than regex-per-line: it tracks environment
+    nesting, so a tabular inside a table disappears with its parent, and a
+    section heading inside a dropped region cannot re-open the output. Line
+    positions are preserved, which lets a caller keep reporting line numbers.
+    """
+    lines = tex_text.splitlines()
+    body_start = 0
+    for i, line in enumerate(lines):
+        if _BEGIN_DOC_RE.search(line):
+            body_start = i + 1
+            break
+
+    dropped = frozenset() if keep_floats else NON_PROSE_ENVIRONMENTS
+    kept: list[str] = [""] * body_start
+    stack: list[str] = []
+    body = drop_frontmatter_macros("\n".join(lines[body_start:]))
+    # drop_frontmatter_macros can delete newlines with a multi-line \author{...};
+    # pad the result back to the original length so line numbers still line up.
+    body_lines = body.splitlines()
+    body_lines += [""] * max(0, len(lines) - body_start - len(body_lines))
+    for raw in body_lines:
+        line = strip_comments(raw)
+        pos = 0
+        emit: list[str] = []
+        while pos < len(line):
+            begin = _ENV_BEGIN_RE.search(line, pos)
+            end = _ENV_END_RE.search(line, pos)
+            nxt = min(
+                [m for m in (begin, end) if m is not None],
+                key=lambda m: m.start(),
+                default=None,
+            )
+            if nxt is None:
+                if not stack:
+                    emit.append(line[pos:])
+                break
+            name = nxt.group(1)
+            # Environment markers are markup in every case; only bodies can be prose.
+            if not stack:
+                emit.append(line[pos : nxt.start()])
+            if nxt is begin:
+                if stack or name in dropped:
+                    stack.append(name)
+            elif stack:
+                # Tolerate a mismatched \end by unwinding to it when possible.
+                if name in stack:
+                    while stack and stack.pop() != name:
+                        pass
+                else:
+                    stack.pop()
+            pos = nxt.end()
+        kept.append("".join(emit).strip())
+    return kept
+
+
+def strip_non_prose(tex_text: str, *, keep_floats: bool = False) -> str:
+    """Prose text of the document, with every non-prose line removed."""
+    return "\n".join(
+        line for line in scan_prose_lines(tex_text, keep_floats=keep_floats) if line
+    )
+
+
 def looks_like_claim(sentence: str, *, mode: str) -> bool:
-    if len(sentence.strip()) < 20:
+    stripped = sentence.strip()
+    if len(stripped) < 20:
         return False
-    if re.search(r"\d", sentence) or "%" in sentence or "p<" in sentence.lower():
+    # Markup residue: a control sequence survived cleaning, so this is not prose.
+    if _RESIDUAL_MACRO_RE.search(stripped):
+        return False
+    # A claim asserts something; a caption fragment or a heading does not.
+    if not _ASSERTION_VERB_RE.search(stripped):
+        return False
+    if re.search(r"\d", stripped) or "%" in stripped or "p<" in stripped.lower():
         return True
     if mode == "broad":
-        return _BROAD_CLAIM_RE.search(sentence) is not None
+        return _BROAD_CLAIM_RE.search(stripped) is not None
     return False
 
 
@@ -156,8 +323,10 @@ def iter_segments(tex_lines: list[str]) -> list[tuple[str, str]]:
     return segments
 
 
-def build_claims(tex_text: str, *, mode: str, max_claims: int) -> list[Claim]:
-    lines = tex_text.splitlines()
+def build_claims(
+    tex_text: str, *, mode: str, max_claims: int, keep_floats: bool = False
+) -> list[Claim]:
+    lines = strip_non_prose(tex_text, keep_floats=keep_floats).splitlines()
     segments = iter_segments(lines)
 
     claims: list[Claim] = []
@@ -273,6 +442,14 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Overwrite existing registry files if present.",
     )
+    parser.add_argument(
+        "--keep-floats",
+        action="store_true",
+        help=(
+            "Do not drop figure/table/math/code environments before extraction. "
+            "Auditing aid: it shows what the structural pre-pass removed."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -305,7 +482,12 @@ def main() -> int:
         return 1
 
     tex_text = main_tex.read_text(encoding="utf-8", errors="replace")
-    claims = build_claims(tex_text, mode=args.mode, max_claims=max(0, int(args.max_claims)))
+    claims = build_claims(
+        tex_text,
+        mode=args.mode,
+        max_claims=max(0, int(args.max_claims)),
+        keep_floats=args.keep_floats,
+    )
 
     write_markdown(out_md, mode=args.mode, claims=claims)
     if args.write_csv:
