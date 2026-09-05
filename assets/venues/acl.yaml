@@ -1,0 +1,32 @@
+# ACL venue configuration. See assets/venues/neurips.yaml for field notes.
+# Page limit below is for a LONG paper; a short paper is 4 pages.
+venue: acl
+display_name: ACL
+full_name: Annual Meeting of the Association for Computational Linguistics
+reference_year: 2026
+
+page_limit_main: 8
+page_limit_note: long paper; short paper is 4 pages. References and appendix unlimited.
+columns: two
+font_size: 11pt
+paper_size: a4
+text_area: set by acl.sty
+
+anonymous: true
+review_model: double-blind
+
+required_sections:
+  - Limitations
+
+style_file: acl.sty
+style_file_url: https://github.com/acl-org/acl-style-files
+author_guide_url: https://acl-org.github.io/ACLPUB/formatting.html
+
+checklist_required: true
+checklist_asset: acl
+checklist_guide_url: https://aclrollingreview.org/responsibleNLPresearch/
+
+common_rejections:
+  - Missing the mandatory Limitations section
+  - Weak evaluation
+  - Scope too narrow for the venue

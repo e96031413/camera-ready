@@ -1,0 +1,45 @@
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.brf
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.nav
+*.out
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+*.xdv
+
+# Generated paper projects and run outputs
+runs/
+submission.tar.gz
+
+# Node / Remotion video renders
+node_modules/
+out/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Committed example output must stay tracked
+!examples/**/main.pdf
+
+# Fallback pytest temp root (see conftest.py)
+.pytest-tmp/
+
+# Cached CSL style files, fetched on demand by scripts/export_document.py
+assets/csl/
+
+# Throwaway project created by docs/demo-script.sh
+.demo-tmp/
+
+# Default output directory of scripts/quick_start.py. Papers belong in their own
+# repository; to track one here anyway, use 'git add -f papers/<name>'.
+papers/

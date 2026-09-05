@@ -1,0 +1,67 @@
+# MLA 9th edition citation style.
+# LaTeX support comes from biblatex-mla (CTAN). Check the package release notes
+# before submitting: MLA 9 changed container and supplemental-element handling.
+style: mla9
+display_name: MLA 9th edition
+full_name: MLA Handbook, 9th edition
+family: author-page
+disciplines:
+  - humanities
+  - literature
+  - languages
+  - cultural-studies
+
+latex_backend: biblatex
+latex_package_line: \usepackage[style=mla,backend=biber]{biblatex}
+latex_extra_preamble: ""
+latex_language_setup: \usepackage[english]{babel}
+latex_bibliography_line: \printbibliography[title={Works Cited}]
+latex_cite_parenthetical: \autocite
+latex_cite_narrative: \textcite
+latex_required_packages:
+  - biblatex
+  - biblatex-mla
+  - csquotes
+bib_processor: biber
+
+csl_id: modern-language-association
+csl_url: https://www.zotero.org/styles/modern-language-association
+word_supported: true
+
+required_fields_article:
+  - author
+  - title
+  - journaltitle
+  - year
+  - volume
+  - pages
+required_fields_book:
+  - author
+  - title
+  - year
+  - publisher
+required_fields_inproceedings:
+  - author
+  - title
+  - booktitle
+  - year
+required_fields_thesis:
+  - author
+  - title
+  - year
+  - institution
+  - type
+
+# Preprints, datasets and web sources arrive as @misc; a bare @misc with no
+# retrieval target is the most common unusable entry.
+required_fields_misc:
+  - author
+  - title
+  - year
+
+reference_url: https://style.mla.org/mla-format/
+notes: >
+  MLA cites by author and page, not by year, so a page number belongs in the
+  citation command rather than in the entry. The bibliography heading is
+  Works Cited. MLA 9 describes sources as nested containers; record the
+  container in journaltitle or booktitle rather than inventing a field.

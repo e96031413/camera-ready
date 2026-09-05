@@ -1,0 +1,70 @@
+# APA 7th edition citation style.
+# LaTeX support comes from biblatex-apa (CTAN). Version 9.0 and later implement
+# the 7th edition; earlier versions implement the 6th. Check your TeX Live year.
+style: apa7
+display_name: APA 7th edition
+full_name: Publication Manual of the American Psychological Association, 7th edition
+family: author-date
+disciplines:
+  - psychology
+  - education
+  - business
+  - social-science
+  - nursing
+
+latex_backend: biblatex
+latex_package_line: \usepackage[style=apa,backend=biber]{biblatex}
+latex_extra_preamble: \DeclareLanguageMapping{american}{american-apa}
+latex_language_setup: \usepackage[american]{babel}
+latex_bibliography_line: \printbibliography
+latex_cite_parenthetical: \parencite
+latex_cite_narrative: \textcite
+latex_required_packages:
+  - biblatex
+  - biblatex-apa
+  - csquotes
+bib_processor: biber
+
+csl_id: apa
+csl_url: https://www.zotero.org/styles/apa
+word_supported: true
+
+required_fields_article:
+  - author
+  - title
+  - journaltitle
+  - year
+  - volume
+  - pages
+  - doi
+required_fields_book:
+  - author
+  - title
+  - year
+  - publisher
+required_fields_inproceedings:
+  - author
+  - title
+  - booktitle
+  - year
+required_fields_thesis:
+  - author
+  - title
+  - year
+  - institution
+  - type
+
+# Preprints, datasets and web sources arrive as @misc; a bare @misc with no
+# retrieval target is the most common unusable entry.
+required_fields_misc:
+  - author
+  - title
+  - year
+  - doi|url
+
+reference_url: https://apastyle.apa.org/style-grammar-guidelines/references
+notes: >
+  APA requires a DOI or a stable URL for every source that has one. The
+  bibliography heading is References. In-text citations are author-date, and a
+  work with three or more authors is shortened to the first author plus et al.
+  on every mention.

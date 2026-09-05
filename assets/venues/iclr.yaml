@@ -1,0 +1,31 @@
+# ICLR venue configuration. See assets/venues/neurips.yaml for field notes.
+venue: iclr
+display_name: ICLR
+full_name: International Conference on Learning Representations
+reference_year: 2026
+
+page_limit_main: 9
+page_limit_note: unlimited references and appendix
+columns: single
+font_size: 10pt
+paper_size: letter
+text_area: custom margins set by the class file
+
+anonymous: true
+review_model: double-blind
+
+required_sections:
+  - LLM Usage
+
+style_file: iclr2026_conference.sty
+style_file_url: https://iclr.cc/Conferences/2026/AuthorGuide
+author_guide_url: https://iclr.cc/Conferences/2026/AuthorGuide
+
+checklist_required: true
+checklist_asset: iclr
+checklist_guide_url: https://iclr.cc/Conferences/2026/AuthorGuide
+
+common_rejections:
+  - Incremental contribution over prior work
+  - Insufficient analysis of why the method works
+  - Weak related work coverage

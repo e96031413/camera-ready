@@ -1,0 +1,31 @@
+# AAAI venue configuration. See assets/venues/neurips.yaml for field notes.
+venue: aaai
+display_name: AAAI
+full_name: AAAI Conference on Artificial Intelligence
+reference_year: 2026
+
+page_limit_main: 7
+page_limit_note: 7 pages main text + 1 page references + 1 page ethics statement if needed
+columns: two
+font_size: 10pt
+paper_size: letter
+text_area: set by the AAAI author kit
+
+anonymous: true
+review_model: double-blind
+
+required_sections:
+  - Ethics Statement
+
+style_file: aaai26.sty
+style_file_url: https://aaai.org/authorkit/
+author_guide_url: https://aaai.org/authorkit/
+
+checklist_required: true
+checklist_asset: aaai
+checklist_guide_url: https://aaai.org/authorkit/
+
+common_rejections:
+  - Style violations against the author kit
+  - Insufficient comparison with existing methods
+  - Lack of novelty

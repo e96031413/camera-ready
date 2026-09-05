@@ -1,0 +1,12 @@
+{
+  "name": "mini-codebase-fixture",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "echo build",
+    "test": "echo test"
+  },
+  "dependencies": {
+    "react": "^18.0.0"
+  }
+}
+

@@ -1,0 +1,22 @@
+# Normalize line endings so the repo behaves the same on Windows, Linux and macOS.
+* text=auto eol=lf
+
+# LaTeX and BibTeX sources are text.
+*.tex text eol=lf
+*.bib text eol=lf
+*.cls text eol=lf
+*.sty text eol=lf
+*.bst text eol=lf
+
+# Binary assets must never be translated.
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pptx binary
+*.docx binary
+*.mp4 binary
+*.wav binary
+*.ttf binary
+*.otf binary

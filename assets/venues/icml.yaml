@@ -1,0 +1,31 @@
+# ICML venue configuration. See assets/venues/neurips.yaml for field notes.
+venue: icml
+display_name: ICML
+full_name: International Conference on Machine Learning
+reference_year: 2026
+
+page_limit_main: 8
+page_limit_note: unlimited references and appendix
+columns: two
+font_size: 10pt
+paper_size: letter
+text_area: 6.75in x 9.25in
+
+anonymous: true
+review_model: double-blind
+
+required_sections:
+  - Broader Impact
+
+style_file: icml2026.sty
+style_file_url: https://icml.cc/Conferences/2026/StyleAuthorInstructions
+author_guide_url: https://icml.cc/Conferences/2026/AuthorInstructions
+
+checklist_required: true
+checklist_asset: icml
+checklist_guide_url: https://icml.cc/Conferences/2026/AuthorInstructions
+
+common_rejections:
+  - Overclaiming relative to the evidence
+  - Missing error bars or variance reporting
+  - Limited ablation study

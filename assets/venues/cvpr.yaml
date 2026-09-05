@@ -1,0 +1,30 @@
+# CVPR venue configuration. See assets/venues/neurips.yaml for field notes.
+venue: cvpr
+display_name: CVPR
+full_name: IEEE/CVF Conference on Computer Vision and Pattern Recognition
+reference_year: 2026
+
+page_limit_main: 8
+page_limit_note: unlimited references; supplementary material is a separate file
+columns: two
+font_size: 10pt
+paper_size: letter
+text_area: set by cvpr.sty
+
+anonymous: true
+review_model: double-blind
+
+required_sections: []
+
+style_file: cvpr.sty
+style_file_url: https://cvpr.thecvf.com/Conferences/2026/AuthorGuidelines
+author_guide_url: https://cvpr.thecvf.com/Conferences/2026/AuthorGuidelines
+
+checklist_required: false
+checklist_asset: cvpr
+checklist_guide_url: https://cvpr.thecvf.com/Conferences/2026/AuthorGuidelines
+
+common_rejections:
+  - Missing qualitative or visual comparison
+  - Weak ablation study
+  - Poor figure quality

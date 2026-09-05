@@ -1,0 +1,59 @@
+# IEEE style: the existing default for this workflow's engineering templates.
+style: ieee
+display_name: IEEE
+full_name: IEEE Reference Guide
+family: numeric
+disciplines:
+  - computer-science
+  - electrical-engineering
+  - engineering
+
+latex_backend: bst
+latex_package_line: \usepackage{cite}
+latex_extra_preamble: ""
+latex_language_setup: ""
+latex_bibliography_line: \bibliographystyle{IEEEtran}
+latex_cite_parenthetical: \cite
+latex_cite_narrative: \cite
+latex_required_packages:
+  - cite
+bib_processor: bibtex
+
+csl_id: ieee
+csl_url: https://www.zotero.org/styles/ieee
+word_supported: true
+
+required_fields_article:
+  - author
+  - title
+  - journal
+  - year
+required_fields_book:
+  - author
+  - title
+  - year
+  - publisher
+required_fields_inproceedings:
+  - author
+  - title
+  - booktitle
+  - year
+required_fields_thesis:
+  - author
+  - title
+  - year
+  - school
+
+# Preprints, datasets and web sources arrive as @misc; a bare @misc with no
+# retrieval target is the most common unusable entry.
+required_fields_misc:
+  - author
+  - title
+  - year
+
+reference_url: https://journals.ieeeauthorcenter.ieee.org/your-role-in-article-production/ieee-editorial-style-manual/
+notes: >
+  This is the only profile that uses classic BibTeX rather than biber, because
+  IEEEtran.cls ships a .bst file and the conference templates depend on it.
+  Field names follow BibTeX (journal, school), not biblatex (journaltitle,
+  institution).

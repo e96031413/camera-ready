@@ -1,0 +1,7 @@
+# CameraReady — development dependencies.
+#   pip install -r requirements-dev.txt
+#   python -m pytest -q
+
+-r requirements.txt
+
+pytest>=7.4

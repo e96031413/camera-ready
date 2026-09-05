@@ -1,0 +1,42 @@
+# Psychology: APA style, preregistration norms, human-subjects ethics.
+discipline: psychology
+display_name: Psychology and cognitive science
+default_style: apa7
+allowed_styles:
+  - apa7
+default_format: docx
+document_class: apa7
+evidence_model: experimental
+
+reporting_guidelines:
+  - jars-quant
+  - consort
+  - prisma2020
+required_sections:
+  - Abstract
+  - Introduction
+  - Method
+  - Results
+  - Discussion
+  - References
+
+ethics_approval_required: true
+preregistration_expected: true
+data_availability_required: true
+code_availability_required: true
+conflict_of_interest_required: true
+funding_statement_required: true
+
+peer_review_norm: journal, single- or double-anonymized, revise-and-resubmit
+common_rejections:
+  - Underpowered sample with no a priori power analysis
+  - Analyses that were not preregistered and are not labelled exploratory
+  - Effect sizes and confidence intervals omitted in favour of p-values alone
+  - Missing IRB or ethics approval statement
+
+reference_url: https://apastyle.apa.org/jars
+notes: >
+  APA Journal Article Reporting Standards (JARS) are the field's reporting
+  contract. Most journals accept Word manuscripts; the apa7 LaTeX class exists
+  but is less commonly required. Report exact p-values, effect sizes and
+  confidence intervals, and state whether each analysis was confirmatory.

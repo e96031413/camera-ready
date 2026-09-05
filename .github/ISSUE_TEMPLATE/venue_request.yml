@@ -1,0 +1,138 @@
+name: Venue support request
+description: Ask for a new conference or journal, or report a stale venue config.
+title: "[venue] "
+labels: ["venue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Adding a venue means writing `assets/venues/<venue>.yaml` and, if the
+        venue has a checklist, `assets/checklists/<venue>.md`.
+
+        **Every number below must come from the official author guide.** We do
+        not accept remembered or inferred page limits — a wrong page limit is a
+        desk reject. Link the page you read it on.
+
+        Please do **not** paste the venue style file or the verbatim checklist
+        LaTeX block into this issue. Several venues forbid redistribution; the
+        tooling downloads style files from the official URL at run time.
+
+  - type: input
+    id: venue
+    attributes:
+      label: Venue name and year
+      placeholder: EMNLP 2026
+    validations:
+      required: true
+
+  - type: input
+    id: slug
+    attributes:
+      label: Proposed slug
+      description: Lower-case, no year. Becomes `assets/venues/<slug>.yaml`.
+      placeholder: emnlp
+    validations:
+      required: true
+
+  - type: input
+    id: author-guide
+    attributes:
+      label: Official author guide URL
+    validations:
+      required: true
+
+  - type: input
+    id: style-url
+    attributes:
+      label: Official style file / template download URL
+      description: The direct link `venue_setup.py` would fetch.
+    validations:
+      required: true
+
+  - type: input
+    id: pages
+    attributes:
+      label: Page limit (main text)
+      description: Excluding references and appendix. State the unit if unusual.
+      placeholder: "8"
+    validations:
+      required: true
+
+  - type: input
+    id: pages-total
+    attributes:
+      label: Page allowance for references and appendix
+      placeholder: unlimited references, unlimited appendix
+    validations:
+      required: true
+
+  - type: dropdown
+    id: columns
+    attributes:
+      label: Column layout
+      options:
+        - single
+        - two
+    validations:
+      required: true
+
+  - type: input
+    id: font
+    attributes:
+      label: Base font size
+      placeholder: 10pt
+    validations:
+      required: true
+
+  - type: dropdown
+    id: anonymous
+    attributes:
+      label: Review model
+      options:
+        - Double-blind (anonymous submission)
+        - Single-blind
+        - Open / non-anonymous
+    validations:
+      required: true
+
+  - type: textarea
+    id: required-sections
+    attributes:
+      label: Required sections
+      description: >
+        One per line, exactly as the venue names them — e.g. Limitations,
+        Broader Impact Statement, Ethics Statement, LLM use disclosure.
+      placeholder: |
+        Limitations
+        Ethics Statement
+
+  - type: dropdown
+    id: checklist
+    attributes:
+      label: Does the venue have a paper checklist?
+      options:
+        - "Yes — mandatory"
+        - "Yes — optional or encouraged"
+        - "No"
+    validations:
+      required: true
+
+  - type: input
+    id: checklist-url
+    attributes:
+      label: Checklist guide URL (if any)
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else that causes desk rejects at this venue
+      placeholder: >
+        e.g. margins are enforced by an automated checker; supplementary must
+        be a separate file; references must not be shrunk.
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to open a pull request adding this venue.

@@ -1,0 +1,78 @@
+# CameraReady CI — standalone form.
+#
+# GitHub Actions only reads workflows from the .github/workflows/ directory at
+# the ROOT of a repository. While this project lives inside the SKILLS
+# monorepo, the workflow that actually runs is
+# ../../.github/workflows/camera-ready-ci.yml, which is this file plus a
+# `defaults.run.working-directory: camera-ready` and path filters.
+#
+# This copy is kept so that `git subtree split` produces a repository that is
+# green on its first push, with no CI to re-author. Keep the two in sync.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.10', '3.12']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+
+      - name: Portability lint (encoding, paths, subprocess, docs)
+        run: python scripts/portability_check.py --docs
+
+      - name: Run test suite
+        run: python -m pytest -q
+
+      # Regression guard: several scripts once crashed on --help because they
+      # imported an optional dependency or touched the filesystem before
+      # building the ArgumentParser. Every script must survive this.
+      - name: Smoke test --help on every script (POSIX)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          status=0
+          for f in scripts/*.py; do
+            case "$(basename "$f")" in __init__.py) continue;; esac
+            if ! python "$f" --help >/dev/null 2>&1; then
+              echo "::error file=$f::--help failed"
+              python "$f" --help 2>&1 | tail -20
+              status=1
+            fi
+          done
+          exit $status
+
+      - name: Smoke test --help on every script (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $status = 0
+          Get-ChildItem scripts\*.py | Where-Object { $_.Name -ne '__init__.py' } | ForEach-Object {
+            python $_.FullName --help *> $null
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "::error file=scripts/$($_.Name)::--help failed"
+              python $_.FullName --help 2>&1 | Select-Object -Last 20
+              $status = 1
+            }
+          }
+          exit $status

@@ -1,0 +1,30 @@
+# CameraReady — runtime dependencies.
+#
+# The core workflow (planning, issues CSV, citation verification, LaTeX
+# compilation, integrity/anti-AI/anonymity/format gates, arXiv packaging)
+# uses ONLY the Python standard library. Nothing below is needed for it.
+#
+# Non-Python requirements for the core workflow:
+#   - Python 3.10+
+#   - A LaTeX distribution (pdflatex + bibtex, or latexmk)
+#
+# Everything in this file is OPTIONAL and feature-scoped. Install only the
+# extras you need.
+
+# --- Poster optimization (scripts/poster_optimize.py, poster_thumbnail.py) ---
+# Also requires: playwright install chromium
+playwright>=1.40
+
+# --- Image measurement for posters/slides (scripts/poster_*.py) ---
+Pillow>=10.0
+
+# --- PowerPoint OMML math injection (scripts/pptx_inject_omml.py) ---
+# Also requires the `pandoc` binary on PATH.
+lxml>=5.0
+
+# --- Narrated video: text-to-speech (scripts/synthesize_tts.py) ---
+# Local Qwen3-TTS inference. Skip these if you use --api-url remote mode.
+# torch install varies by platform/CUDA; see https://pytorch.org/get-started/
+# torch>=2.2
+# soundfile>=0.12
+# qwen-tts

@@ -1,0 +1,40 @@
+# Humanities: argument-driven scholarship, MLA or Chicago, no experiments.
+discipline: humanities
+display_name: Humanities
+default_style: mla9
+allowed_styles:
+  - mla9
+  - chicago-notes
+  - chicago-author-date
+default_format: docx
+document_class: article
+evidence_model: interpretive
+
+reporting_guidelines: []
+required_sections:
+  - Introduction
+  - Argument
+  - Conclusion
+  - Works Cited
+
+ethics_approval_required: false
+preregistration_expected: false
+data_availability_required: false
+code_availability_required: false
+conflict_of_interest_required: false
+funding_statement_required: true
+
+peer_review_norm: journal or monograph, double-anonymized, long review cycles
+common_rejections:
+  - No clear intervention in an identified scholarly conversation
+  - Summary of sources in place of an argument
+  - Primary sources cited from secondary quotation
+  - Engagement with the field that stops years short of the present
+
+reference_url: https://style.mla.org/mla-format/
+notes: >
+  There is no experiment section and no results table. The verifiable part of
+  this workflow is narrower here: citations, quotation accuracy, and structural
+  completeness can be checked; the strength of an interpretation cannot. The
+  claim registry should record where in a primary source each reading is
+  grounded, with page or line references.

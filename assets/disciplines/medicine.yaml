@@ -1,0 +1,45 @@
+# Medicine and health sciences: Vancouver style, ICMJE rules, trial registration.
+discipline: medicine
+display_name: Medicine and health sciences
+default_style: vancouver
+allowed_styles:
+  - vancouver
+  - apa7
+default_format: docx
+document_class: article
+evidence_model: clinical
+
+reporting_guidelines:
+  - consort
+  - strobe
+  - prisma2020
+  - care
+required_sections:
+  - Abstract
+  - Introduction
+  - Methods
+  - Results
+  - Discussion
+  - Conclusion
+  - References
+
+ethics_approval_required: true
+preregistration_expected: true
+data_availability_required: true
+code_availability_required: false
+conflict_of_interest_required: true
+funding_statement_required: true
+
+peer_review_norm: journal, single-anonymized, structured abstract required
+common_rejections:
+  - Trial not prospectively registered
+  - Reporting guideline checklist absent or unmatched to the study design
+  - Ethics approval or informed consent statement missing
+  - Outcomes reported that differ from the registered protocol
+
+reference_url: https://www.icmje.org/recommendations/
+notes: >
+  ICMJE authorship criteria, trial registration before enrolment, and a
+  structured abstract are prerequisites, not polish. Choose the reporting
+  guideline from the study design: CONSORT for randomized trials, STROBE for
+  observational studies, PRISMA for systematic reviews, CARE for case reports.

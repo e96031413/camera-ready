@@ -1,0 +1,91 @@
+name: Bug report
+description: A script crashes, produces wrong output, or a gate misfires.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: please run `python -m pytest -q` and confirm the
+        failure is not already covered by a failing test.
+
+        **Do not paste unpublished paper content.** Reduce the problem to a
+        minimal `main.tex` / `ref.bib` you are willing to share publicly.
+
+  - type: input
+    id: script
+    attributes:
+      label: Which script?
+      description: e.g. `scripts/arxiv_package.py`
+      placeholder: scripts/...
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command you ran
+      render: shell
+      placeholder: python scripts/format_gate.py --project-dir ./my-paper --venue icml
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened
+      description: Paste the full traceback or the first 20 lines of output.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: minimal-repro
+    attributes:
+      label: Minimal reproduction
+      description: >
+        The smallest project directory that shows the problem — file tree plus
+        the relevant file contents. Redact anything unpublished.
+      render: text
+
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      description: Output of `python --version`
+      placeholder: Python 3.12.4
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other (state in the description)
+    validations:
+      required: true
+
+  - type: input
+    id: latex
+    attributes:
+      label: LaTeX distribution (if relevant)
+      placeholder: TeX Live 2025 / MiKTeX 24.1 / not installed
+
+  - type: input
+    id: version
+    attributes:
+      label: CameraReady version or commit
+      placeholder: 0.1.0 or a commit SHA
+    validations:
+      required: true

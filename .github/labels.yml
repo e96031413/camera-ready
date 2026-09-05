@@ -1,0 +1,89 @@
+# Issue and pull-request labels for CameraReady.
+#
+# Apply with the GitHub CLI, or with a label-sync action:
+#   gh label create "<name>" --color "<color>" --description "<description>"
+#
+# Every issue gets one type label and one area label. The two entry labels
+# (good first issue, help wanted) are additive.
+
+# --- type: what kind of work this is ---------------------------------------
+
+- name: bug
+  color: d73a4a
+  description: Something produces a wrong result or crashes
+
+- name: enhancement
+  color: a2eeef
+  description: A new capability or an improvement to an existing one
+
+- name: documentation
+  color: 0075ca
+  description: README, docs/, references/ or an in-script docstring
+
+- name: venue-request
+  color: 5319e7
+  description: Add or update a conference or journal profile
+
+- name: style-request
+  color: 5319e7
+  description: Add or update a citation style profile
+
+- name: discipline-request
+  color: 5319e7
+  description: Add or update a discipline profile
+
+- name: guideline-request
+  color: 5319e7
+  description: Add or update a reporting-guideline question set
+
+# --- area: which part of the workflow ---------------------------------------
+
+- name: "area:citations"
+  color: fbca04
+  description: Fetching, verifying and formatting references
+
+- name: "area:gates"
+  color: fbca04
+  description: Format, anonymity, integrity, privacy and checklist gates
+
+- name: "area:autopilot"
+  color: fbca04
+  description: The topic-to-camera-ready state machine
+
+- name: "area:output"
+  color: fbca04
+  description: LaTeX, Word, slides, posters and video
+
+- name: "area:portability"
+  color: fbca04
+  description: Windows, macOS and Linux differences
+
+- name: "area:skill-spec"
+  color: fbca04
+  description: SKILL.md and Agent Skills specification conformance
+
+# --- state: what happens next ----------------------------------------------
+
+- name: good first issue
+  color: 7057ff
+  description: Self-contained, with the acceptance condition written in the issue
+
+- name: help wanted
+  color: 008672
+  description: We want this and nobody is working on it — say so before you start
+
+- name: needs-repro
+  color: e4e669
+  description: We could not reproduce it; a command and its full output usually clears this
+
+- name: needs-source
+  color: e4e669
+  description: A profile value needs the official page it came from, and the date it was read
+
+- name: blocked
+  color: b60205
+  description: Waiting on something outside this repository
+
+- name: wontfix
+  color: ffffff
+  description: Out of the scope stated in the README

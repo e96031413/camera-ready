@@ -1,0 +1,68 @@
+# Vancouver style (ICMJE recommendations), the biomedical standard.
+style: vancouver
+display_name: Vancouver
+full_name: ICMJE Recommendations for manuscripts submitted to biomedical journals
+family: numeric
+disciplines:
+  - medicine
+  - nursing
+  - public-health
+  - dentistry
+  - pharmacy
+
+latex_backend: biblatex
+latex_package_line: \usepackage[style=vancouver,backend=biber]{biblatex}
+latex_extra_preamble: ""
+latex_language_setup: \usepackage[english]{babel}
+latex_bibliography_line: \printbibliography
+latex_cite_parenthetical: \autocite
+latex_cite_narrative: \textcite
+latex_required_packages:
+  - biblatex
+  - biblatex-vancouver
+  - csquotes
+bib_processor: biber
+
+csl_id: vancouver
+csl_url: https://www.zotero.org/styles/vancouver
+word_supported: true
+
+required_fields_article:
+  - author
+  - title
+  - journaltitle
+  - year
+  - volume
+  - pages
+required_fields_book:
+  - author
+  - title
+  - year
+  - publisher
+required_fields_inproceedings:
+  - author
+  - title
+  - booktitle
+  - year
+required_fields_thesis:
+  - author
+  - title
+  - year
+  - institution
+  - type
+
+# Preprints, datasets and web sources arrive as @misc; a bare @misc with no
+# retrieval target is the most common unusable entry.
+required_fields_misc:
+  - author
+  - title
+  - year
+  - doi|url
+
+reference_url: https://www.icmje.org/recommendations/
+notes: >
+  References are numbered in order of first appearance. Journal names are
+  abbreviated per the NLM catalogue, so store the abbreviation in shortjournal
+  and let the style choose. Most biomedical journals also want a PMID or DOI.
+  The older route is natbib with vancouver.bst, which needs no biber; this
+  profile chooses biblatex because it validates fields.

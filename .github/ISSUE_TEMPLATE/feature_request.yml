@@ -1,0 +1,85 @@
+name: Feature request
+description: Propose a new capability or a change to an existing one.
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For "please support conference X", use the **Venue support request**
+        template instead — it asks for the specific fields we need.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: >
+        Describe the situation where the current workflow fails you. Concrete
+        beats abstract: which gate, which phase, what you had to do by hand.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should the tool do instead? A CLI sketch helps.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area?
+      options:
+        - Planning / issues CSV
+        - Citation verification and BibTeX
+        - Writing quality gates (anti-AI, selfloops, self-review)
+        - Integrity / claim registry
+        - Venue config, checklists, format gate
+        - Anonymity check
+        - arXiv packaging
+        - Slides (Beamer / PowerPoint)
+        - Poster
+        - Narrated video
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Including "do nothing" — why is that not good enough?
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Compatibility with project constraints
+      description: >
+        These rules are non-negotiable. Confirm your proposal respects them.
+      options:
+        - label: >
+            It does not generate BibTeX, citations, or bibliographic metadata
+            from model memory.
+          required: true
+        - label: >
+            It does not auto-answer a venue checklist question on the author's
+            behalf.
+          required: true
+        - label: >
+            It does not submit or upload anything to an external platform
+            without an explicit user action.
+          required: true
+        - label: >
+            The core path needs no third-party Python package (optional
+            dependencies must be lazily imported and fail with a clear
+            message).
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to open a pull request for this.

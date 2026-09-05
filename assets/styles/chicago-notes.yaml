@@ -1,0 +1,67 @@
+# Chicago Manual of Style, notes and bibliography system (the humanities variant).
+style: chicago-notes
+display_name: Chicago notes and bibliography
+full_name: The Chicago Manual of Style, notes and bibliography system
+family: note
+disciplines:
+  - humanities
+  - history
+  - law
+  - theology
+  - art-history
+
+latex_backend: biblatex
+latex_package_line: \usepackage[notes,backend=biber]{biblatex-chicago}
+latex_extra_preamble: ""
+latex_language_setup: \usepackage[english]{babel}
+latex_bibliography_line: \printbibliography
+latex_cite_parenthetical: \autocite
+latex_cite_narrative: \textcite
+latex_required_packages:
+  - biblatex
+  - biblatex-chicago
+  - csquotes
+bib_processor: biber
+
+csl_id: chicago-note-bibliography
+csl_url: https://www.zotero.org/styles/chicago-note-bibliography
+word_supported: true
+
+required_fields_article:
+  - author
+  - title
+  - journaltitle
+  - year
+  - volume
+  - pages
+required_fields_book:
+  - author
+  - title
+  - year
+  - publisher
+  - location
+required_fields_inproceedings:
+  - author
+  - title
+  - booktitle
+  - year
+required_fields_thesis:
+  - author
+  - title
+  - year
+  - institution
+  - type
+
+# Preprints, datasets and web sources arrive as @misc; a bare @misc with no
+# retrieval target is the most common unusable entry.
+required_fields_misc:
+  - author
+  - title
+  - year
+
+reference_url: https://www.chicagomanualofstyle.org/tools_citationguide.html
+notes: >
+  Citations become footnotes, so any gate that counts in-text citation commands
+  must count footnote citations too. The bibliography heading is Bibliography.
+  Legal sources in this system usually follow Bluebook or OSCOLA instead; see
+  the law discipline profile.

@@ -1,0 +1,44 @@
+# Education research: APA style, mixed methods, human subjects.
+discipline: education
+display_name: Education research
+default_style: apa7
+allowed_styles:
+  - apa7
+  - chicago-author-date
+default_format: docx
+document_class: article
+evidence_model: mixed-methods
+
+reporting_guidelines:
+  - jars-qual
+  - coreq
+  - cherries
+  - prisma2020
+required_sections:
+  - Abstract
+  - Introduction
+  - Literature Review
+  - Method
+  - Findings
+  - Discussion
+  - Implications
+  - References
+
+ethics_approval_required: true
+preregistration_expected: false
+data_availability_required: false
+code_availability_required: false
+conflict_of_interest_required: true
+funding_statement_required: true
+
+peer_review_norm: journal, double-anonymized
+common_rejections:
+  - Context described too thinly for the findings to transfer
+  - Instrument validity and reliability not reported
+  - Qualitative claims without an account of coding and agreement
+  - No engagement with the theoretical framework the study claims to use
+
+reference_url: https://apastyle.apa.org/jars
+notes: >
+  Studies with minors need explicit consent and assent statements. Mixed-methods
+  work should say how the strands were integrated, not just that both were run.

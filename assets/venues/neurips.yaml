@@ -1,0 +1,38 @@
+# NeurIPS venue configuration.
+# Every value below is sourced from the official author guide linked in
+# author_guide_url. Re-check it each year: page limits, required sections and
+# checklist wording all change between editions.
+venue: neurips
+display_name: NeurIPS
+full_name: Conference on Neural Information Processing Systems
+reference_year: 2025
+
+page_limit_main: 9
+page_limit_note: unlimited references and appendix
+columns: single
+font_size: 10pt
+paper_size: letter
+text_area: 5.5in x 9in
+
+anonymous: true
+review_model: double-blind
+
+required_sections:
+  - Broader Impact
+  - Paper Checklist
+
+style_file: neurips_2025.sty
+# The official publication page for the style files. It may serve an HTML
+# landing page rather than the file itself; venue_setup.py detects that and
+# prints the URL for manual download instead of saving a broken file.
+style_file_url: https://neurips.cc/Conferences/2025/PaperInformation/StyleFiles
+author_guide_url: https://neurips.cc/Conferences/2025/PaperInformation/StyleFiles
+
+checklist_required: true
+checklist_asset: neurips
+checklist_guide_url: https://neurips.cc/public/guides/PaperChecklist
+
+common_rejections:
+  - Missing or unfilled paper checklist
+  - Insufficient novelty over prior work
+  - Weak or missing baselines

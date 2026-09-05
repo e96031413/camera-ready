@@ -1,0 +1,42 @@
+# Law: legal citation systems, doctrinal argument, no empirical claims by default.
+discipline: law
+display_name: Law and legal studies
+default_style: chicago-notes
+allowed_styles:
+  - chicago-notes
+  - apa7
+default_format: docx
+document_class: article
+evidence_model: doctrinal
+
+reporting_guidelines: []
+required_sections:
+  - Introduction
+  - Background
+  - Analysis
+  - Conclusion
+
+ethics_approval_required: false
+preregistration_expected: false
+data_availability_required: false
+code_availability_required: false
+conflict_of_interest_required: true
+funding_statement_required: true
+
+peer_review_norm: student-edited law reviews in the US, peer review elsewhere
+common_rejections:
+  - Citation format that does not follow the required legal system
+  - Authority cited without checking its current status
+  - Jurisdiction-specific reasoning presented as general
+  - Case or statute pin cites that do not resolve
+
+reference_url: https://www.legalbluebook.com/
+notes: >
+  Legal citation uses Bluebook (US) or OSCOLA (UK and Commonwealth), not the
+  general styles in assets/styles. Neither has a maintained BibTeX or biblatex
+  style that this workflow can validate field by field, so legal authorities
+  are treated as manual citations: the workflow checks that every one is
+  recorded in the claim registry with a pin cite and a retrieval date, and
+  leaves formatting to the author. Never cite a case, statute, or regulation
+  from memory, and always confirm it has not been overruled, repealed or
+  amended.

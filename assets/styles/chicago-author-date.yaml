@@ -1,0 +1,65 @@
+# Chicago Manual of Style, author-date system (the sciences variant).
+style: chicago-author-date
+display_name: Chicago author-date
+full_name: The Chicago Manual of Style, author-date system
+family: author-date
+disciplines:
+  - social-science
+  - business
+  - economics
+  - education
+
+latex_backend: biblatex
+latex_package_line: \usepackage[authordate,backend=biber]{biblatex-chicago}
+latex_extra_preamble: ""
+latex_language_setup: \usepackage[english]{babel}
+latex_bibliography_line: \printbibliography
+latex_cite_parenthetical: \autocite
+latex_cite_narrative: \textcite
+latex_required_packages:
+  - biblatex
+  - biblatex-chicago
+  - csquotes
+bib_processor: biber
+
+csl_id: chicago-author-date
+csl_url: https://www.zotero.org/styles/chicago-author-date
+word_supported: true
+
+required_fields_article:
+  - author
+  - title
+  - journaltitle
+  - year
+  - volume
+  - pages
+required_fields_book:
+  - author
+  - title
+  - year
+  - publisher
+  - location
+required_fields_inproceedings:
+  - author
+  - title
+  - booktitle
+  - year
+required_fields_thesis:
+  - author
+  - title
+  - year
+  - institution
+  - type
+
+# Preprints, datasets and web sources arrive as @misc; a bare @misc with no
+# retrieval target is the most common unusable entry.
+required_fields_misc:
+  - author
+  - title
+  - year
+
+reference_url: https://www.chicagomanualofstyle.org/tools_citationguide.html
+notes: >
+  Load biblatex-chicago instead of biblatex; the package loads biblatex itself
+  and passing both produces an option clash. The bibliography heading is
+  References in the author-date system.

@@ -1,0 +1,42 @@
+# Business, management and economics.
+discipline: business
+display_name: Business, management and economics
+default_style: apa7
+allowed_styles:
+  - apa7
+  - chicago-author-date
+default_format: docx
+document_class: article
+evidence_model: empirical
+
+reporting_guidelines:
+  - prisma2020
+  - cherries
+required_sections:
+  - Abstract
+  - Introduction
+  - Theory and Hypotheses
+  - Method
+  - Results
+  - Discussion
+  - References
+
+ethics_approval_required: true
+preregistration_expected: false
+data_availability_required: true
+code_availability_required: true
+conflict_of_interest_required: true
+funding_statement_required: true
+
+peer_review_norm: journal, double-anonymized, developmental review
+common_rejections:
+  - Hypotheses without a theoretical mechanism
+  - Endogeneity left unaddressed in observational data
+  - Common method bias in single-source survey designs
+  - Robustness checks absent
+
+reference_url: https://apastyle.apa.org/style-grammar-guidelines/references
+notes: >
+  Identification strategy carries the paper. State the counterfactual, the
+  identifying assumption, and what would falsify the claim. Survey work should
+  report response rates and non-response analysis.
