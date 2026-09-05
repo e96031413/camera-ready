@@ -1,13 +1,12 @@
 # CameraReady CI — standalone form.
 #
-# GitHub Actions only reads workflows from the .github/workflows/ directory at
-# the ROOT of a repository. While this project lives inside the SKILLS
-# monorepo, the workflow that actually runs is
-# ../../.github/workflows/camera-ready-ci.yml, which is this file plus a
-# `defaults.run.working-directory: camera-ready` and path filters.
+# This is the workflow that runs for https://github.com/e96031413/camera-ready,
+# where the project lives at the repository root.
 #
-# This copy is kept so that `git subtree split` produces a repository that is
-# green on its first push, with no CI to re-author. Keep the two in sync.
+# The same file is mirrored in the upstream monorepo as
+# .github/workflows/camera-ready-ci.yml, where it carries an extra
+# `defaults.run.working-directory: camera-ready` and path filters. Keep the two
+# in sync.
 
 name: CI
 
@@ -27,9 +26,9 @@ jobs:
         python-version: ['3.10', '3.12']
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 

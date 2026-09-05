@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Export a manuscript to Word, ODT, Markdown, Typst or HTML through pandoc.
 
-Version: 2026-09-05-v1
+Version: 2026-09-05-v2
 
 Most disciplines outside computer science submit Word files. This script is the
 non-LaTeX output path: it converts a LaTeX or Markdown manuscript, resolves the
@@ -38,7 +38,7 @@ from pathlib import Path
 from citation_style import StyleError, load_style
 from paper_utils import enable_utf8_stdout, get_assets_dir
 
-BANNER = "export_document 2026-09-05-v1"
+BANNER = "export_document 2026-09-05-v2"
 
 # Output format -> (pandoc writer name, file extension)
 FORMATS = {
@@ -210,10 +210,6 @@ def main() -> int:
         print("\nerror: --input is required", file=sys.stderr)
         return 2
 
-    if pandoc_version() is None:
-        print("error: pandoc is not installed; run --check for install instructions", file=sys.stderr)
-        return 2
-
     input_path = Path(args.input)
     if not input_path.is_file():
         print(f"error: no such file: {input_path}", file=sys.stderr)
@@ -226,6 +222,10 @@ def main() -> int:
             f"{', '.join(sorted(READERS))}",
             file=sys.stderr,
         )
+        return 2
+
+    if pandoc_version() is None:
+        print("error: pandoc is not installed; run --check for install instructions", file=sys.stderr)
         return 2
 
     writer, extension = FORMATS[args.to]
