@@ -19,8 +19,8 @@
 
 | Archive name | Source | Size |
 |---|---|---|
-| `IEEEtran.cls` | `IEEEtran.cls` | 288,305 B |
-| `main.tex` | `main.tex` | 39,798 B |
+| `IEEEtran.cls` | `IEEEtran.cls` | 281,959 B |
+| `main.tex` | `main.tex` | 39,363 B |
 
 ## Before you upload
 
