@@ -5,6 +5,7 @@
 *.brf
 *.fdb_latexmk
 *.fls
+*.log
 *.lof
 *.lot
 *.nav
@@ -42,4 +43,7 @@ assets/csl/
 
 # Default output directory of scripts/quick_start.py. Papers belong in their own
 # repository; to track one here anyway, use 'git add -f papers/<name>'.
-papers/
+papers/*
+!papers/camera-ready-paper/
+papers/camera-ready-paper/test_*
+papers/camera-ready-paper/q[123].*

@@ -251,7 +251,7 @@ def main() -> int:
             key = re.sub(r"\W+", "", args.title.split()[0].lower() if args.title else "unknown")
             placeholder = (
                 f"\n% [VERIFY] — not found in DBLP/CrossRef, needs manual verification\n"
-                f"@misc{{{key}_verify,\n"
+                f"@misc{{PLACEHOLDER_{key},\n"
                 f"  title = {{{args.title}}},\n"
                 f"  author = {{{args.author}}},\n"
                 f"  note = {{[VERIFY]}},\n"

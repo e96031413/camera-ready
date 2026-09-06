@@ -993,6 +993,61 @@ def cmd_stats(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_export_provenance(args: argparse.Namespace) -> int:
+    db_path = resolve_db_path(args)
+    if not db_path.is_file():
+        print(f"error: registry database not found at {db_path}", file=sys.stderr)
+        return 1
+
+    out_path = Path(args.output) if args.output else None
+    lines: list[str] = []
+
+    with connect(db_path) as conn:
+        ensure_initialized(conn)
+        works = conn.execute("SELECT work_id FROM works;").fetchall()
+        for w in works:
+            ensure_citation_key(conn, work_id=int(w["work_id"]))
+
+        join_clause = "" if getattr(args, "all", False) else "JOIN bibtex b ON b.work_id = w.work_id"
+        query = f"""
+            SELECT
+              ck.key AS citation_key,
+              w.arxiv_id,
+              w.title,
+              w.doi,
+              w.abs_url,
+              b.fetched_at,
+              b.sha256 AS record_hash
+            FROM works w
+            JOIN citation_keys ck ON ck.work_id = w.work_id
+            {join_clause}
+            ORDER BY ck.key ASC;
+        """
+        rows = conn.execute(query).fetchall()
+        for r in rows:
+            record = {
+                "citation_key": str(r["citation_key"]),
+                "source_registry": "arXiv",
+                "canonical_identifier": f"arXiv:{r['arxiv_id']}",
+                "doi": str(r["doi"]) if r["doi"] else None,
+                "resolved_title": str(r["title"]),
+                "retrieved_at": str(r["fetched_at"]) if r["fetched_at"] else now_iso(),
+                "record_hash": str(r["record_hash"]) if r["record_hash"] else sha256_bytes(str(r["title"]).encode("utf-8")),
+                "canonical_url": str(r["abs_url"]) if r["abs_url"] else f"https://arxiv.org/abs/{r['arxiv_id']}",
+            }
+            lines.append(json.dumps(record, ensure_ascii=False))
+
+    content = "\n".join(lines) + ("\n" if lines else "")
+    if out_path is not None:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(content, encoding="utf-8")
+        print(f"Exported {len(lines)} provenance record(s) to {out_path}")
+    else:
+        sys.stdout.write(content)
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="arXiv-first discovery + BibTeX registry (SQLite).")
     parser.add_argument(
@@ -1071,6 +1126,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_export.add_argument("--refresh", action="store_true", help="Force a network fetch (ignore cached BibTeX).")
     p_export.add_argument("--sleep-s", type=float, default=0.0, help="Sleep between requests (default: 0).")
     p_export.set_defaults(fn=cmd_export_bibtex)
+
+    p_prov = sub.add_parser("export-provenance", help="Export citation provenance metadata (JSONL).")
+    p_prov.add_argument("--out-file", "--output", dest="output", help="Output .jsonl path. If omitted, prints to stdout.")
+    p_prov.add_argument("--all", action="store_true", help="Export all works in registry, not just those with fetched BibTeX.")
+    p_prov.set_defaults(fn=cmd_export_provenance)
 
     p_stats = sub.add_parser("stats", help="Print basic registry stats.")
     p_stats.set_defaults(fn=cmd_stats)

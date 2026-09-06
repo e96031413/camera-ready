@@ -61,3 +61,46 @@ class TestEscapeBibtexLatex:
     def test_a_clean_entry_is_returned_unchanged(self):
         clean = ENTRY.replace("Roadmap & User Guide", "Roadmap and User Guide")
         assert ar.escape_bibtex_latex(clean) == clean
+
+
+class TestExportProvenance:
+    def test_export_provenance_jsonl(self, tmp_path):
+        import json
+        import subprocess
+
+        db_path = tmp_path / "notes" / "arxiv-registry.sqlite3"
+        with ar.connect(db_path) as conn:
+            ar.init_schema(conn)
+            conn.execute(
+                """
+                INSERT INTO works(work_id, arxiv_id, title, published, abs_url, created_at, last_seen_at)
+                VALUES(1, '2301.00001', 'Test Architecture', '2023-01-01', 'https://arxiv.org/abs/2301.00001', '2023-01-01T00:00:00Z', '2023-01-01T00:00:00Z');
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO bibtex(work_id, fetched_at, source_url, sha256, bibtex)
+                VALUES(1, '2023-01-01T00:00:00Z', 'https://export.arxiv.org/bib/2301.00001', 'abc123hash', '@misc{test,\n}');
+                """
+            )
+            conn.commit()
+
+        out_jsonl = tmp_path / "notes" / "citation-provenance.jsonl"
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPTS / "arxiv_registry.py"), "--project-dir", str(tmp_path), "export-provenance", "--output", str(out_jsonl)],
+            capture_output=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        assert proc.returncode == 0
+        assert out_jsonl.is_file()
+
+        lines = [line.strip() for line in out_jsonl.read_text(encoding="utf-8").splitlines() if line.strip()]
+        assert len(lines) == 1
+        record = json.loads(lines[0])
+        assert record["citation_key"]
+        assert record["source_registry"] == "arXiv"
+        assert record["canonical_identifier"] == "arXiv:2301.00001"
+        assert record["resolved_title"] == "Test Architecture"
+        assert record["record_hash"] == "abc123hash"
+

@@ -1,0 +1,68 @@
+% Beamer Slide Template — camera-ready skill
+% Compile with: xelatex -interaction=nonstopmode slides.tex
+\documentclass[10pt,aspectratio=169]{beamer}
+
+\usetheme{Madrid}
+\usecolortheme{default}
+
+% ── Semantic colors ──────────────────────────────────────────
+\definecolor{positive}{RGB}{31,119,180}   % blue  — advantages, pros
+\definecolor{negative}{RGB}{255,127,14}   % orange — disadvantages, cons
+\definecolor{emphasis}{RGB}{44,160,44}    % green  — key findings, highlights
+
+\newcommand{\pos}[1]{\textcolor{positive}{#1}}
+\newcommand{\con}[1]{\textcolor{negative}{#1}}
+\newcommand{\HL}[1]{\textcolor{emphasis}{\textbf{#1}}}
+
+% ── Packages ─────────────────────────────────────────────────
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,decorations.pathreplacing,calc}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% ── Metadata (fill in) ──────────────────────────────────────
+\title[Short Title]{Full Presentation Title}
+\author{Author Name}
+\institute{Institution}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+\tableofcontents
+\end{frame}
+
+% ── Content slides go here ───────────────────────────────────
+
+% \section{Introduction}
+% \begin{frame}{Motivation}
+% \end{frame}
+
+% ── References ───────────────────────────────────────────────
+% \begin{frame}[allowframebreaks]{References}
+% \bibliographystyle{plain}
+% \bibliography{ref}
+% \end{frame}
+
+% ── Thank You ────────────────────────────────────────────────
+% \begin{frame}
+% \centering
+% {\Large Thank You}\\[1em]
+% Questions?\\[0.5em]
+% \texttt{email@example.com}
+% \end{frame}
+
+% ── Backup slides ────────────────────────────────────────────
+% \appendix
+% \begin{frame}{Backup: Detail A}
+% \end{frame}
+
+\end{document}

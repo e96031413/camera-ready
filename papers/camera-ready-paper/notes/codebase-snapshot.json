@@ -1,0 +1,168 @@
+{
+  "created_at": "2026-09-05T14:47:07+08:00",
+  "codebase_name": "camera-ready",
+  "paper_project_name": "camera-ready-paper",
+  "git_head": "7f2239adc7bbaa411ab6ee48f0ff4160a291c50f",
+  "root_manifests": [
+    "README.md",
+    "requirements.txt",
+    "requirements-dev.txt"
+  ],
+  "readme_excerpt": [
+    "<p align=\"center\">",
+    "  <strong>English</strong> · <a href=\"README.zh-TW.md\">繁體中文</a> · <a href=\"README.zh-CN.md\">简体中文</a>",
+    "</p>",
+    "<p align=\"center\">",
+    "  <img src=\"assets/images/hero_banner.jpg\" alt=\"CameraReady Banner\" width=\"100%\" />",
+    "</p>",
+    "<h1 align=\"center\">CameraReady</h1>",
+    "<p align=\"center\">",
+    "  <strong>From a Topic to Camera-Ready — Gated All the Way.</strong><br>",
+    "  <em>An autonomous academic paper pipeline for AI agents, built for uncompromising scientific rigor across disciplines and formats.</em>",
+    "</p>",
+    "<p align=\"center\">",
+    "  <a href=\"<URL_REDACTED> alt=\"License: MIT\" src=\"<URL_REDACTED>",
+    "  <img alt=\"Python 3.10+\" src=\"<URL_REDACTED>",
+    "  <img alt=\"Platforms\" src=\"<URL_REDACTED>",
+    "  <img alt=\"Disciplines\" src=\"<URL_REDACTED>",
+    "  <img alt=\"Citation Styles\" src=\"<URL_REDACTED>",
+    "  <img alt=\"Zero Hallucination\" src=\"<URL_REDACTED>",
+    "  <img alt=\"Agent Skills\" src=\"<URL_REDACTED>",
+    "</p>",
+    "<p align=\"center\">",
+    "  <a href=\"#five-minutes\"><strong>⚡ Start in 5 Minutes</strong></a> ·",
+    "  <a href=\"examples/minimal-review-paper/main.pdf\"><strong>📄 Sample Output (PDF)</strong></a> ·",
+    "  <a href=\"docs/DEMO.md\"><strong>🎥 Interactive Demo</strong></a> ·"
+  ],
+  "total_files": 248,
+  "extension_counts": {
+    ".md": 94,
+    ".py": 88,
+    "<noext>": 1,
+    ".ini": 1,
+    ".txt": 3,
+    ".csv": 4,
+    ".csl": 1,
+    ".yaml": 20,
+    ".json": 5,
+    ".ts": 5,
+    ".jpg": 2,
+    ".tex": 7,
+    ".cls": 3,
+    ".bib": 3,
+    ".html": 2,
+    ".tsx": 6,
+    ".sh": 1,
+    ".bbl": 1,
+    ".pdf": 1
+  },
+  "extension_counts_summary": [
+    [
+      ".md",
+      94
+    ],
+    [
+      ".py",
+      88
+    ],
+    [
+      ".yaml",
+      20
+    ],
+    [
+      ".tex",
+      7
+    ],
+    [
+      ".tsx",
+      6
+    ],
+    [
+      ".json",
+      5
+    ],
+    [
+      ".ts",
+      5
+    ],
+    [
+      ".csv",
+      4
+    ],
+    [
+      ".bib",
+      3
+    ],
+    [
+      ".cls",
+      3
+    ],
+    [
+      ".txt",
+      3
+    ],
+    [
+      ".html",
+      2
+    ]
+  ],
+  "top_level_files": {
+    "(root)": 14,
+    "assets": 66,
+    "docs": 7,
+    "examples": 11,
+    "papers": 14,
+    "references": 50,
+    "scripts": 62,
+    "tests": 24
+  },
+  "top_level_files_summary": [
+    [
+      "assets",
+      66
+    ],
+    [
+      "scripts",
+      62
+    ],
+    [
+      "references",
+      50
+    ],
+    [
+      "tests",
+      24
+    ],
+    [
+      "(root)",
+      14
+    ],
+    [
+      "papers",
+      14
+    ],
+    [
+      "examples",
+      11
+    ],
+    [
+      "docs",
+      7
+    ]
+  ],
+  "top_level_dirs": {
+    "assets": 14,
+    "docs": 1,
+    "examples": 6,
+    "papers": 6,
+    "references": 1,
+    "scripts": 1,
+    "tests": 1
+  },
+  "package_json": null,
+  "requirements_txt": [
+    "playwright>=1.40",
+    "Pillow>=10.0",
+    "lxml>=5.0"
+  ]
+}

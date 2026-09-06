@@ -70,7 +70,7 @@ def parse_bib_entries(bib_text: str) -> list[dict]:
     entries: list[dict] = []
     # Split on @ entries
     for match in re.finditer(
-        r"@\w+\{([^,]+),\s*(.*?)(?=\n@|\Z)", bib_text, re.DOTALL
+        r"@\w+\{([^,]+),\s*(.*?)(?=\n\s*@|\Z)", bib_text, re.DOTALL
     ):
         key = match.group(1).strip()
         body = match.group(2)
@@ -178,8 +178,19 @@ def classify_entry(
     never HALLUCINATED: a network nobody asked is not a source that denied it.
     """
     results: list[dict] = []
-
     identity = entry.get("eprint") or entry.get("doi") or entry.get("title") or entry["key"]
+
+    # Explicit check for unverified placeholders:
+    # A placeholder emitted on unresolved lookup cannot be considered verified or merely skipped.
+    is_placeholder = (
+        entry["key"].startswith("PLACEHOLDER_")
+        or entry["key"].endswith("_verify")
+        or "_verify" in entry["key"]
+        or bool(re.search(r"note\s*=\s*\{?\s*\[VERIFY\]", entry.get("raw", ""), re.IGNORECASE))
+    )
+    if is_placeholder:
+        results.append({"layer": 0, "status": "placeholder", "detail": "unresolved placeholder marked for manual verification"})
+        return "HALLUCINATED", results
 
     # Layer 0a: local corpus.
     if corpus is not None and corpus.available:
@@ -251,7 +262,14 @@ def main() -> int:
     parser.add_argument("--output", default=None, help="Output report path (default: notes/citation-verification.md)")
     parser.add_argument("--remove-hallucinated", action="store_true", help="Remove HALLUCINATED entries")
     parser.add_argument("--out-bib", default=None, help="Write cleaned .bib file (requires --remove-hallucinated)")
-    parser.add_argument("--max-entries", type=int, default=60, help="Max entries to verify (default: 60)")
+    parser.add_argument("--max-entries", type=int, default=None, help="Max entries to verify (default: 60 in advisory mode, all in strict mode)")
+    parser.add_argument(
+        "--strict",
+        "--gate",
+        dest="strict",
+        action="store_true",
+        help="Gate mode: verify all citations, reject placeholders/hallucinations with exit code 1",
+    )
     add_cache_arguments(parser)
     args = parser.parse_args()
 
@@ -265,17 +283,26 @@ def main() -> int:
     if not entries:
         return fail("no BibTeX entries found")
 
+    # In strict/gate mode, verify all citations; fail if max_entries prematurely truncates
+    if args.strict and args.max_entries is not None and args.max_entries < len(entries):
+        return fail(
+            f"strict gate mode requires verifying all citations, but max-entries ({args.max_entries}) < total citations ({len(entries)})"
+        )
+
+    limit = args.max_entries if args.max_entries is not None else (len(entries) if args.strict else min(len(entries), 60))
+
     cache = cache_from_args(args, bib_path.parent)
     corpus = corpus_from_args(args)
     mode = " [offline]" if args.offline else ""
-    print(f"Verifying {min(len(entries), args.max_entries)} of {len(entries)} citations...{mode}")
+    strict_tag = " [strict/gate]" if args.strict else ""
+    print(f"Verifying {min(len(entries), limit)} of {len(entries)} citations...{mode}{strict_tag}")
 
     results: dict[str, list] = {"VERIFIED": [], "SUSPICIOUS": [], "HALLUCINATED": [], "SKIPPED": []}
     entry_classifications: list[tuple[dict, str, list]] = []
 
-    for i, entry in enumerate(entries[: args.max_entries]):
+    for i, entry in enumerate(entries[:limit]):
         title_short = entry.get("title", entry["key"])[:60]
-        print(f"  [{i + 1}/{min(len(entries), args.max_entries)}] {title_short}...", end=" ")
+        print(f"  [{i + 1}/{min(len(entries), limit)}] {title_short}...", end=" ")
 
         classification, layers = classify_entry(
             entry, cache=cache, corpus=corpus, offline=args.offline
@@ -309,7 +336,8 @@ def main() -> int:
         "",
         f"**Source**: `{bib_path.name}`",
         f"**Verified**: {now_iso()}",
-        f"**Entries checked**: {total}",
+        f"**Entries checked**: {total} of {len(entries)}",
+        f"**Mode**: {'Strict Gate' if args.strict else 'Advisory'}",
         "",
         "## Summary",
         "",
@@ -368,6 +396,12 @@ def main() -> int:
         out_path = Path(args.out_bib)
         out_path.write_text(cleaned_bib + "\n", encoding="utf-8")
         print(f"Cleaned bib: {out_path} (removed {len(hallu_keys)} hallucinated entries)")
+
+    if args.strict:
+        if results["HALLUCINATED"]:
+            return fail(f"strict gate failed: {len(results['HALLUCINATED'])} citation(s) classified as HALLUCINATED: {', '.join(results['HALLUCINATED'][:5])}")
+        if total < len(entries):
+            return fail(f"strict gate failed: only {total} of {len(entries)} citations were verified")
 
     return 0
 

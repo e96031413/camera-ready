@@ -1,0 +1,66 @@
+{
+  "banner": "autopilot 2026-09-05-v1",
+  "created": "2026-09-05T14:50:09+08:00",
+  "topic": "CameraReady: A Gated, Verification-First Workflow for Agentic Academic Paper Production",
+  "discipline": "computer-science",
+  "evidence_model": "experimental",
+  "style": "ieee",
+  "format": "latex",
+  "venue": null,
+  "min_citations": 8,
+  "phase": "camera-ready",
+  "plan_approved_by": "Yanwei Liu",
+  "overrides": {
+    "draft": "16 open rows are Slides/Video/Poster tasks marked SKIP (no talk, video or poster planned); autopilot counts SKIP as open while validate_paper_issues.py treats it as terminal"
+  },
+  "journal": [
+    {
+      "at": "2026-09-05T14:50:09+08:00",
+      "entry": "run created for topic: CameraReady: A Gated, Verification-First Workflow for Agentic Academic Paper Production"
+    },
+    {
+      "at": "2026-09-05T14:50:29+08:00",
+      "entry": "advanced from 'ideate' to 'literature' (notes/research-question.md, 274 words)"
+    },
+    {
+      "at": "2026-09-05T14:54:10+08:00",
+      "entry": "advanced from 'literature' to 'plan' (ref.bib has 45 fetched entries, no placeholders)"
+    },
+    {
+      "at": "2026-09-05T14:54:40+08:00",
+      "entry": "plan approved by Yanwei Liu"
+    },
+    {
+      "at": "2026-09-05T14:54:40+08:00",
+      "entry": "advanced from 'plan' to 'issues' (2026-09-05_14-47-07-camera-ready-paper.md, approved by Yanwei Liu)"
+    },
+    {
+      "at": "2026-09-05T14:55:03+08:00",
+      "entry": "advanced from 'issues' to 'experiments' (2026-09-05_14-47-07-camera-ready-paper.csv, 38 issues)"
+    },
+    {
+      "at": "2026-09-05T15:06:49+08:00",
+      "entry": "advanced from 'experiments' to 'draft' (notes/experiment-results.md exists)"
+    },
+    {
+      "at": "2026-09-05T15:21:33+08:00",
+      "entry": "forced past 'draft' despite: 16 issue(s) still open: SL4, SL5, SL6, SL7, SL8, VD1, VD2, VD3. Reason: 16 open rows are Slides/Video/Poster tasks marked SKIP (no talk, video or poster planned); autopilot counts SKIP as open while validate_paper_issues.py treats it as terminal"
+    },
+    {
+      "at": "2026-09-05T15:21:33+08:00",
+      "entry": "advanced from 'draft' to 'verify' (16 issue(s) still open: SL4, SL5, SL6, SL7, SL8, VD1, VD2, VD3)"
+    },
+    {
+      "at": "2026-09-05T15:23:13+08:00",
+      "entry": "advanced from 'verify' to 'review' (10 gate(s) recorded as PASS, none failing)"
+    },
+    {
+      "at": "2026-09-05T15:25:44+08:00",
+      "entry": "advanced from 'review' to 'revise' (7 numbered comment(s) recorded)"
+    },
+    {
+      "at": "2026-09-05T15:25:49+08:00",
+      "entry": "advanced from 'revise' to 'camera-ready' (all 7 comments resolved)"
+    }
+  ]
+}

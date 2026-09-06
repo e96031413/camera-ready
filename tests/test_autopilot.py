@@ -274,3 +274,50 @@ class TestCli:
 
     def test_check_rejects_an_unknown_phase(self, project):
         assert run(["check", "--project-dir", str(project), "--phase", "nope"]).returncode == 2
+
+
+class TestUnresolvedFetchAndVerifyGate:
+    def test_unresolved_fetch_cannot_pass_literature_gate(self, project):
+        state = state_of(project)
+        # 1. PLACEHOLDER_ prefix
+        (project / "ref.bib").write_text("@misc{PLACEHOLDER_unknown,\n  title = {Unresolved},\n}\n", encoding="utf-8")
+        passed, detail = ap.check_literature(project, state)
+        assert not passed
+        assert "placeholder" in detail.lower()
+
+        # 2. _verify suffix
+        (project / "ref.bib").write_text("@misc{unknown_verify,\n  title = {Unresolved},\n}\n", encoding="utf-8")
+        passed, detail = ap.check_literature(project, state)
+        assert not passed
+        assert "placeholder" in detail.lower() or "unverified" in detail.lower()
+
+        # 3. [VERIFY] note
+        (project / "ref.bib").write_text("@misc{unknown,\n  title = {Unresolved},\n  note = {[VERIFY]},\n}\n", encoding="utf-8")
+        passed, detail = ap.check_literature(project, state)
+        assert not passed
+        assert "placeholder" in detail.lower() or "unverified" in detail.lower()
+
+    def test_deterministic_check_blocks_verify_if_ref_bib_has_placeholders(self, project):
+        state = state_of(project)
+        (project / "notes" / "verification-report.md").write_text("- citations: PASS\n", encoding="utf-8")
+        (project / "ref.bib").write_text("@misc{PLACEHOLDER_bad,\n  title = {T},\n}\n", encoding="utf-8")
+        passed, detail = ap.check_verify(project, state)
+        assert not passed
+        assert "deterministic check failed" in detail
+        assert "PLACEHOLDER_bad" in detail
+
+    def test_orchestrated_verification_generates_report(self, project):
+        state = state_of(project)
+        report_md = project / "notes" / "verification-report.md"
+        report_json = project / "notes" / "verification-report.json"
+        if report_md.exists():
+            report_md.unlink()
+        if report_json.exists():
+            report_json.unlink()
+
+        passed, detail = ap.check_verify(project, state)
+        assert report_md.is_file()
+        assert report_json.is_file()
+        assert passed
+        assert "clean" in detail
+

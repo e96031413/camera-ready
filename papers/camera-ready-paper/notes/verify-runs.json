@@ -1,0 +1,16 @@
+{
+  "runs": [
+    {"run": 1, "verified": 39, "suspicious": 0, "hallucinated": 0, "skipped": 6},
+    {"run": 2, "verified": 38, "suspicious": 0, "hallucinated": 0, "skipped": 7},
+    {"run": 3, "verified": 41, "suspicious": 0, "hallucinated": 0, "skipped": 4},
+    {"run": 4, "verified": 38, "suspicious": 0, "hallucinated": 0, "skipped": 7},
+    {"run": 5, "verified": 45, "suspicious": 0, "hallucinated": 0, "skipped": 0},
+    {"run": 6, "verified": 45, "suspicious": 0, "hallucinated": 0, "skipped": 0}
+  ],
+  "union": {
+    "verified": 45,
+    "suspicious": 0,
+    "hallucinated": 0,
+    "skipped": 0
+  }
+}

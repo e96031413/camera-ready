@@ -38,6 +38,7 @@ import argparse
 import csv
 import json
 import re
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -220,10 +221,20 @@ def check_literature(project_dir: Path, state: dict) -> tuple[bool, str]:
         return False, "ref.bib is missing"
     text = bib.read_text(encoding="utf-8", errors="replace")
     entries = re.findall(r"@\w+\s*\{\s*([^,]+),", text)
-    placeholders = [key for key in entries if key.strip().startswith("PLACEHOLDER_")]
+    placeholders = [
+        key.strip()
+        for key in entries
+        if key.strip().startswith("PLACEHOLDER_") or key.strip().endswith("_verify") or "_verify" in key.strip()
+    ]
+    unverified_notes = re.findall(
+        r"@\w+\s*\{\s*([^,]+),[^@]*?note\s*=\s*\{?\s*\[VERIFY\]",
+        text,
+        re.DOTALL | re.IGNORECASE,
+    )
+    all_unverified = sorted(list(set(placeholders + [k.strip() for k in unverified_notes])))
     minimum = int(state.get("min_citations", 8))
-    if placeholders:
-        return False, f"{len(placeholders)} placeholder entr(ies) still in ref.bib: {', '.join(placeholders[:5])}"
+    if all_unverified:
+        return False, f"{len(all_unverified)} placeholder/unverified entr(ies) still in ref.bib: {', '.join(all_unverified[:5])}"
     if len(entries) < minimum:
         return False, f"ref.bib has {len(entries)} entries; the run requires at least {minimum}"
     return True, f"ref.bib has {len(entries)} fetched entries, no placeholders"
@@ -288,10 +299,119 @@ def check_draft(project_dir: Path, state: dict) -> tuple[bool, str]:
     return True, f"{manuscript.name} written, all {len(rows)} issues closed{tail}"
 
 
+def run_verification_gates(project_dir: Path, state: dict, offline: bool = True) -> tuple[bool, dict]:
+    scripts_dir = Path(__file__).resolve().parent
+    notes_dir = project_dir / "notes"
+    notes_dir.mkdir(parents=True, exist_ok=True)
+    report_md = notes_dir / "verification-report.md"
+    report_json = notes_dir / "verification-report.json"
+
+    gates: dict[str, dict] = {}
+    all_passed = True
+
+    # 1. Citations Gate (verify_citations.py)
+    bib_file = project_dir / "ref.bib"
+    if bib_file.is_file():
+        cmd = [
+            sys.executable,
+            str(scripts_dir / "verify_citations.py"),
+            "--bib-file",
+            str(bib_file),
+            "--strict",
+        ]
+        if offline:
+            cmd.append("--offline")
+        res = subprocess.run(cmd, capture_output=True, encoding="utf-8", errors="replace")
+        status = "PASS" if res.returncode == 0 else "FAIL"
+        gates["citations"] = {
+            "status": status,
+            "returncode": res.returncode,
+            "detail": res.stdout[-300:].strip() if res.stdout else res.stderr[-300:].strip(),
+        }
+        if status == "FAIL":
+            all_passed = False
+    else:
+        gates["citations"] = {"status": "SKIP", "detail": "ref.bib not found"}
+
+    # 2. Format Gate (format_gate.py) if venue is configured
+    venue = state.get("venue")
+    if venue:
+        cmd = [
+            sys.executable,
+            str(scripts_dir / "format_gate.py"),
+            "--project-dir",
+            str(project_dir),
+            "--venue",
+            venue,
+        ]
+        res = subprocess.run(cmd, capture_output=True, encoding="utf-8", errors="replace")
+        status = "PASS" if res.returncode == 0 else "FAIL"
+        gates["format"] = {
+            "status": status,
+            "returncode": res.returncode,
+            "detail": res.stdout[-300:].strip() if res.stdout else res.stderr[-300:].strip(),
+        }
+        if status == "FAIL":
+            all_passed = False
+
+    # 3. Privacy Scan (paper_privacy_scan.py) if present and manuscript exists
+    manuscript = find_manuscript(project_dir)
+    privacy_script = scripts_dir / "paper_privacy_scan.py"
+    if manuscript and privacy_script.is_file():
+        cmd = [
+            sys.executable,
+            str(privacy_script),
+            "--project-dir",
+            str(project_dir),
+        ]
+        res = subprocess.run(cmd, capture_output=True, encoding="utf-8", errors="replace")
+        status = "PASS" if res.returncode == 0 else "FAIL"
+        gates["privacy"] = {
+            "status": status,
+            "returncode": res.returncode,
+            "detail": res.stdout[-300:].strip() if res.stdout else res.stderr[-300:].strip(),
+        }
+        if status == "FAIL":
+            all_passed = False
+
+    if not gates:
+        gates["artifacts"] = {"status": "PASS", "detail": "scaffold intact"}
+
+    # Write verification-report.json
+    summary = {
+        "generated_at": now_iso(),
+        "all_passed": all_passed,
+        "gates": gates,
+    }
+    report_json.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+
+    # Write verification-report.md
+    md_lines = [
+        "# Verification Report",
+        "",
+        f"**Generated**: {now_iso()}",
+        f"**Overall**: {'PASS' if all_passed else 'FAIL'}",
+        "",
+        "## Gate Results",
+        "",
+    ]
+    for gate_name, info in gates.items():
+        md_lines.append(f"- {gate_name}: {info['status']}")
+    md_lines.append("")
+    report_md.write_text("\n".join(md_lines), encoding="utf-8")
+
+    return all_passed, summary
+
+
 def check_verify(project_dir: Path, state: dict) -> tuple[bool, str]:
     path = project_dir / "notes" / "verification-report.md"
     if not path.is_file():
-        return False, "notes/verification-report.md is missing; record each gate you ran and its result"
+        # Orchestrate deterministic gates automatically
+        passed, summary = run_verification_gates(project_dir, state)
+        if not passed:
+            failed_gates = [k for k, v in summary["gates"].items() if v.get("status") == "FAIL"]
+            return False, f"orchestrated verification failed on: {', '.join(failed_gates)}"
+
     text = path.read_text(encoding="utf-8", errors="replace")
     failures = re.findall(r"^\s*[-*]?\s*(.+?):\s*FAIL\b", text, re.MULTILINE | re.IGNORECASE)
     if failures:
@@ -299,7 +419,44 @@ def check_verify(project_dir: Path, state: dict) -> tuple[bool, str]:
     passes = len(re.findall(r"\bPASS\b", text, re.IGNORECASE))
     if passes == 0:
         return False, "notes/verification-report.md records no PASS lines"
-    return True, f"{passes} gate(s) recorded as PASS, none failing"
+
+    # Enforce deterministic ground truth checks
+    bib = project_dir / "ref.bib"
+    if bib.is_file():
+        bib_text = bib.read_text(encoding="utf-8", errors="replace")
+        entries = re.findall(r"@\w+\s*\{\s*([^,]+),", bib_text)
+        placeholders = [
+            k.strip() for k in entries
+            if k.strip().startswith("PLACEHOLDER_") or k.strip().endswith("_verify") or "_verify" in k.strip()
+        ]
+        unverified_notes = re.findall(
+            r"@\w+\s*\{\s*([^,]+),[^@]*?note\s*=\s*\{?\s*\[VERIFY\]",
+            bib_text,
+            re.DOTALL | re.IGNORECASE,
+        )
+        all_unverified = sorted(list(set(placeholders + [k.strip() for k in unverified_notes])))
+        if all_unverified:
+            return False, f"deterministic check failed: ref.bib contains placeholder/unverified citations ({', '.join(all_unverified[:5])})"
+
+    cite_rep = project_dir / "notes" / "citation-verification.md"
+    if cite_rep.is_file():
+        rep_text = cite_rep.read_text(encoding="utf-8", errors="replace")
+        hallu_match = re.search(r"\|\s*HALLUCINATED\s*\|\s*(\d+)\s*\|", rep_text)
+        if hallu_match and int(hallu_match.group(1)) > 0:
+            return False, f"deterministic check failed: citation-verification reports {hallu_match.group(1)} hallucinated reference(s)"
+
+    json_path = project_dir / "notes" / "verification-report.json"
+    if json_path.is_file():
+        try:
+            report_data = json.loads(json_path.read_text(encoding="utf-8"))
+            if not report_data.get("all_passed", True):
+                failed_gates = [k for k, v in report_data.get("gates", {}).items() if v.get("status") == "FAIL"]
+                if failed_gates:
+                    return False, f"verification-report.json records failed gate(s): {', '.join(failed_gates)}"
+        except Exception:
+            pass
+
+    return True, f"{passes} gate(s) recorded as PASS, deterministic checks clean"
 
 
 COMMENT_PATTERN = re.compile(r"^##+\s*(?:Comment\s*)?(\d+)[.):]?\s*(.*)$", re.MULTILINE | re.IGNORECASE)
@@ -543,6 +700,22 @@ def cmd_phases(args) -> int:
     return 0
 
 
+def cmd_verify(args) -> int:
+    project_dir = Path(args.project_dir)
+    state = load_state(project_dir)
+    print(f"{BANNER}: orchestrating verification gates for {project_dir}\n")
+    passed, summary = run_verification_gates(project_dir, state, offline=not args.online)
+    for gate_name, info in summary["gates"].items():
+        print(f"  [{info['status']}] {gate_name}: {info.get('detail', '')[:80]}")
+    print()
+    if passed:
+        print("All deterministic gates PASSED.")
+        return 0
+    else:
+        print("One or more verification gates FAILED.", file=sys.stderr)
+        return 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Drive a paper from a topic to a camera-ready submission.")
     sub = parser.add_subparsers(dest="command")
@@ -570,6 +743,10 @@ def build_parser() -> argparse.ArgumentParser:
     advance.add_argument("--force", action="store_true", help="advance despite an unmet condition")
     advance.add_argument("--reason", help="why the override is justified; required with --force")
 
+    verify = sub.add_parser("verify", help="orchestrate verification gates and update notes/verification-report.*")
+    verify.add_argument("--project-dir", required=True)
+    verify.add_argument("--online", action="store_true", help="allow live online lookups instead of offline verification")
+
     log = sub.add_parser("log", help="append a note to the run journal")
     log.add_argument("--project-dir", required=True)
     log.add_argument("--note", required=True)
@@ -592,6 +769,7 @@ def main() -> int:
         "status": cmd_status,
         "check": cmd_check,
         "advance": cmd_advance,
+        "verify": cmd_verify,
         "log": cmd_log,
         "phases": cmd_phases,
     }

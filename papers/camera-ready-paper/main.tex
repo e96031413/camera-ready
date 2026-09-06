@@ -1,0 +1,423 @@
+% CameraReady technical report -- 2026-09-05-v1
+% Gated, verification-first agent workflow for academic paper production.
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{url}
+\def\UrlBreaks{\do\/\do-}
+\usepackage{booktabs}
+\usepackage{colortbl}
+\usepackage{array}
+\usepackage{microtype}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,calc}
+
+\definecolor{gateblue}{RGB}{45,105,175}
+\definecolor{gategreen}{RGB}{35,135,50}
+\definecolor{gatered}{RGB}{185,45,55}
+\definecolor{gategray}{RGB}{100,105,115}
+\definecolor{rowtint}{RGB}{246,248,251}
+
+\newcommand{\badgeblock}{\textsc{\textbf{\textcolor{gatered}{Block}}}}
+\newcommand{\badgeadvise}{\textsc{\textbf{\textcolor{gateblue}{Advise}}}}
+\newcommand{\codeexit}[1]{\textbf{\texttt{#1}}}
+
+\setlength{\textfloatsep}{7pt plus 1pt minus 1pt}
+\setlength{\floatsep}{6pt plus 1pt minus 1pt}
+\setlength{\intextsep}{6pt plus 1pt minus 1pt}
+\setlength{\abovecaptionskip}{3.5pt plus 1pt minus 1pt}
+\setlength{\belowcaptionskip}{2.5pt plus 1pt minus 1pt}
+
+\begin{document}
+
+\title{CameraReady: A Gated, Verification-First Workflow\\for Agentic Academic Paper Production}
+
+\author{
+    \IEEEauthorblockN{Yanwei Liu}
+    \IEEEauthorblockA{Independent Researcher\thanks{This document is an engineering technical report accompanying CameraReady; it has not undergone formal peer review. Source code, evaluation records, citation provenance manifest, and reproduction scripts: \protect\url{https://github.com/e96031413/camera-ready}.}}
+}
+
+\maketitle
+
+\begin{abstract}
+While large language model (LLM) agents can automate end-to-end scientific writing, they frequently fabricate citations and assert unsubstantiated empirical claims. Existing defenses operate predominantly post-hoc, scanning finished drafts to catch spurious references after text generation. In this technical report, we argue that mechanically checkable manuscript-integrity properties are better enforced by the authoring workflow than delegated to model self-assessment. We present CameraReady, an open-source, verification-first authoring framework that guides scientific papers from initial ideation to an arXiv-oriented pre-submission package across ten structured phases. CameraReady structures verification into a three-tier taxonomy: enforced filesystem invariants that halt progression upon failure, advisory diagnostics that flag potential semantic or stylistic issues for author review, and explicit human governance checkpoints. The citation pipeline decouples parametric memory from the bibliography: references enter exclusively via external API resolution against canonical registries (DBLP, CrossRef, and arXiv), ensuring that unresolved queries produce explicit verification markers rather than ungrounded BibTeX records. Discipline conventions, citation styles, and venue formatting constraints are formalized as declarative data schemas rather than prompt instructions. Under the stated registry-resolution criterion, all 45 references ingested for this case study originated from canonical registry queries, with no identity-level fabricated bibliographic records observed in the resulting bibliography. Repeated downstream re-resolution under live network conditions exhibited transient remote-service throttling (yielding 38--45 verified entries across runs), illustrating an operational advantage of persisting bibliographic provenance at ingestion time rather than relying solely on retrospective remote lookup. Testing 545 unit tests in 34 modules, together with negative-control fault injections and an end-to-end dogfooding case study, showed that all blocking gates rejected the tested non-compliant inputs with non-zero exit codes; controlled benchmark comparison against unconstrained authoring remains future work. CameraReady is open source at \url{https://github.com/e96031413/camera-ready}.
+\end{abstract}
+
+\begin{IEEEkeywords}
+LLM agents, scientific writing, citation hallucination, workflow verification, research software
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+Citations form the foundation of scholarly literature: cited prior work must exist and directly support the citing text. Generative language models routinely violate this invariant. In an audit of 111 million citations across arXiv, bioRxiv, SSRN, and PubMed Central, non-existent references rose sharply alongside LLM adoption~\cite{zhao2026llm}. Fabricated citations have begun slipping into published conference proceedings~\cite{russinovich2026phantom}, and systematic evaluations confirm that citation fabrication persists across all major commercial and open-weight models~\cite{naser2026how}.
+
+Concurrently, autonomous research agents have expanded from simple code execution to open-ended discovery. Frameworks such as The AI Scientist~\cite{lu2024the} and Agent Laboratory~\cite{schmidgall2025agent} automate ideation, experimentation, and paper compilation. Subsequent systems scale agentic research to multi-day lifecycles~\cite{zhao2026scienceflow,mitchener2025kosmos} and distributed teams~\cite{tang2026fars,du2025accelerating}. Structured generation pipelines enforce argument outlines prior to drafting~\cite{qian2026story2proposal}, while broader surveys document rapid adoption across scientific domains~\cite{ren2025towards,tie2025a,kong2026ai}. However, manuscript integrity in these frameworks is predominantly relegated to downstream evaluation benchmarks~\cite{miyai2026paper} or retrospective post-hoc screening~\cite{rao2026detecting,khajavi2026citecheck}.
+
+Post-hoc filtering exhibits fundamental architectural weaknesses. Retrospective checkers inspect drafts only after spurious text has been generated, relying on empirical similarity thresholds and third-party web APIs that remain vulnerable to rate limits and network outages. As Cornelio et al.~\cite{cornelio2025the} argue, verification must be embedded directly into the research and authoring loop. Parallel initiatives have introduced auditable protocols for scientific hypothesis formation~\cite{takahara2026toward,wang2026firstresearch}. However, existing agent frameworks lack fail-stop verification gates, deterministic citation grounding, and auditable repository predicates.
+
+This report presents CameraReady, an open-source workflow comprising 68 modular Python scripts ($\approx$21.2k lines of code) guiding manuscripts from ideation to a pre-submission package passing local format and integrity gates. CameraReady is grounded on a clear principle: model-generated completion claims are insufficient; phase transitions must be determined from repository-level predicates. Operating under a cooperative agent model where toolchain execution governs repository state, the framework partitions verification into three explicit operational tiers:
+1)~\textit{Enforced invariants}: mechanically decidable checks (canonical bibliographic existence, numerical consistency against registered data artifacts, schema conformance, and prerequisite artifact existence) halting workflow progression via fail-stop exit codes;
+2)~\textit{Advisory diagnostics}: semantic and stylometric heuristics (citation lexical overlap, prose flow, and pattern density) assisting author inspection without blocking compilation; and
+3)~\textit{Human governance}: scholarly judgment, scientific novelty, claim adjudication, and submission authorization. References enter exclusively through API-mediated resolution against canonical registries, and venue formatting constraints reside in structured configuration schemas.
+
+Our primary contributions are fourfold:
+1)~\textit{Three-tier gated workflow} (Section~\ref{sec:gates}): A state machine governing ten phases through fail-stop invariant gates, advisory diagnostics, and append-only override journaling;
+2)~\textit{Citation provenance by construction} (Section~\ref{sec:verify}): A bibliographic pipeline that decouples parametric memory from \texttt{ref.bib}, admitting entries only via direct API resolution against DBLP, CrossRef, or arXiv;
+3)~\textit{Provided declarative schemas} (Section~\ref{sec:arch}): Formalized configuration profiles for 8 disciplines, 6 citation styles, and 6 venues, enabling uniform verification across distinct publishing standards; and
+4)~\textit{Artifact-level verification and provenance analysis} (Section~\ref{sec:eval}): Software verification across 545 unit tests (across 34 modules), 12 negative control fault injections, and an operational comparison demonstrating the stability of fetch-time provenance persistence over downstream remote API re-resolution under rate limits; controlled empirical comparisons against unconstrained agent baselines remain future work.
+
+\section{Background and Related Work}
+
+\subsection{Autonomous research and writing agents}
+LLM-based scientific agents have advanced from isolated coding assistants to autonomous discovery pipelines. Lu et al.~\cite{lu2024the} demonstrated fully automated research loops closed by automated peer review. Agent Laboratory~\cite{schmidgall2025agent} partitions tasks among specialized agents for literature review, experimentation, and report compilation. Long-horizon discovery systems such as ScienceFlow~\cite{zhao2026scienceflow}, Kosmos~\cite{mitchener2025kosmos}, and FARS~\cite{tang2026fars} support distributed multi-agent collaboration, while goal-evolving architectures~\cite{du2025accelerating} dynamically adjust hypotheses. In manuscript preparation, Story2Proposal~\cite{qian2026story2proposal} emphasizes structural outlines, while broader surveys document rapid adoption across scientific domains~\cite{ren2025towards,tie2025a,kong2026ai}. Wang et al.~\cite{wang2026externalizing} and Takahara et al.~\cite{takahara2026toward} advocate externalizing research validation into auditable execution environments. CameraReady applies this externalization directly to the authoring pipeline, substituting model self-evaluation with deterministic filesystem inspection.
+
+\subsection{Citation hallucination: measurement and detection}
+The prevalence of citation hallucination is well documented. Zhao et al.~\cite{zhao2026llm} estimate that tens of thousands of fabricated citations have entered scholarly preprints, while Naser~\cite{naser2026how} demonstrates that hallucination is widespread across both commercial and open-weight LLMs. Mechanistic studies by Chen et al.~\cite{chen2026where} trace citation fabrication to internal parametric representations, confirming that hallucination is an architectural consequence of autoregressive modeling.
+
+In response, post-hoc detectors verify citations via retrieval-augmented search (CiteCheck~\cite{khajavi2026citecheck}), internal attribution tracing (FACTUM~\cite{dassen2026factum}), existential queries (CheckIfExist~\cite{abbonato2026checkifexist}), and multi-agent cross-examination~\cite{li2026source}. Rao et al. benchmark citation errors in publishing agents~\cite{rao2026bibtex} and evaluate automated correction~\cite{rao2026detecting}, while MCP servers provide interactive bibliographic repair~\cite{lee2026citecheck}. However, grounding alone cannot eliminate invented citations~\cite{bchard2024reducing}. Unlike retrospective detectors that inspect drafts after errors occur, CameraReady enforces bibliographic provenance prior to drafting.
+
+\subsection{Verification and provenance in agent architectures}
+Agent systems increasingly incorporate external verification. CARE~\cite{liu2026care} statically checks shell commands before execution; TRACER~\cite{yu2026tracer} provides cryptographic provenance for multimodal outputs; and She et al.~\cite{she2026safeguarding} track provenance to detect policy drift. Souza et al.~\cite{souza2025llm} formalize reference architectures for workflow provenance. For iterative loops, Wu et al.~\cite{wu2026verify} formulate bounded stopping rules, and Sah et al.~\cite{sah2026the} model the ``verifier tax'' governing safety-throughput trade-offs. Tool evolution studies~\cite{xu2026the} and programmatic skill workflows~\cite{liu2026harnessing} similarly replace unconstrained model autonomy with structured execution.
+
+\subsection{Review, detection, and reporting norms}
+Automating scientific review introduces distinct risks~\cite{ye2024are,akella2025pre}, as machine-generated text increasingly permeates both submissions~\cite{zhou2025large} and reviewer comments~\cite{wu2026impact}. While span classifiers attempt to detect synthetic prose~\cite{yin2025span}, formal reproducibility checklists~\cite{pineau2020improving} and automated code audits~\cite{akdeniz2023an} provide objective reporting criteria. Systematic review pipelines~\cite{huang2026lumen,lin2026meta,chen2025large} also require strict reporting compliance. CameraReady formalizes these standards as machine-readable schemas, focusing strictly on verifiable structural, bibliographic, and procedural properties.
+
+\section{Threat Model}
+\label{sec:threat}
+
+We consider an LLM agent that operates through standard shell and filesystem interfaces and is tasked with authoring an academic paper targeting a peer-reviewed venue. Assuming the agent operates cooperatively, failure stems not from malice, but from generative unreliability. We identify four primary failure modes:
+
+\noindent\textbf{F1: Fabricated or corrupted citations.} The agent emits syntactically valid BibTeX referencing nonexistent papers or attributing real authors to invented titles~\cite{rao2026bibtex}. Autoregressive sampling cannot reliably separate recall from fabrication.\\
+\noindent\textbf{F2: Claims unsupported by evidence.} The manuscript asserts findings or performance metrics unsupported by underlying experimental artifacts, or cites literature for techniques they do not contain.\\
+\noindent\textbf{F3: Formatting and venue policy violations.} The generated document violates page limits, required sections, style guidelines, or double-blind anonymization rules.\\
+\noindent\textbf{F4: Premature workflow progression.} The agent declares a phase complete based on conversational cues rather than verified artifact readiness, leading to ungrounded drafting.
+
+CameraReady deterministically enforces the \textbf{mechanically checkable subset} of F1--F4: canonical bibliographic existence and registry resolution (F1 subset), numerical consistency between reported tables and registered script outputs (F2 subset), adherence to declarative venue formatting schemas (F3), and physical existence of phase prerequisite artifacts (F4). In contrast, higher-order semantic validity---such as whether a cited paper genuinely substantiates a nuanced conceptual assertion, or whether an experimental methodology is sound---cannot be decided mechanically; such properties remain advisory diagnostics or explicit human responsibilities.
+
+\noindent\textbf{Operating model and trust boundary.} We assume an agent executing commands cooperatively within the CameraReady CLI and toolchain workflow. CameraReady establishes toolchain invariants ensuring that compliant execution cannot silently inject ungrounded citations or bypass unfulfilled phase prerequisites. We do not model an adversarial agent actively attempting to tamper with repository state via out-of-band shell commands; adversarial isolation requires OS-level sandboxing (discussed in Section~\ref{sec:discuss}).
+
+\section{Design Principles}
+\label{sec:principles}
+
+CameraReady addresses failures F1--F4 through five design principles:
+
+\noindent\textbf{P1: Externalized, file-backed state.} Execution state resides in structured filesystem artifacts (JSON, Markdown) rather than ephemeral conversational memory, allowing workflows to pause and resume across sessions without state loss.\\
+\noindent\textbf{P2: Fail-stop gating by default.} Verification gates exit with non-zero status codes upon invariant failure; 62 of 68 scripts implement this fail-stop behavior. Advancing requires satisfying all checks or explicitly documenting an override. Advisory diagnostics exit cleanly with warnings.\\
+\noindent\textbf{P3: Strict provenance within the toolchain.} Within the supported CLI, the pipeline provides no code path for models to inject raw BibTeX into \texttt{ref.bib}. Entries are admitted exclusively via automated API resolution against canonical registries; unresolved queries emit explicit markers.\\
+\noindent\textbf{P4: Declarative discipline and venue schemas.} Field guidelines, citation conventions, and venue constraints are formalized as declarative data schemas rather than natural-language prompt instructions.\\
+\noindent\textbf{P5: Explicit human authority checkpoints.} Critical governance boundaries---specifically approving the initial research plan, adjudicating extracted claims, and authorizing final submission---are enforced as explicit, file-backed sign-off checkpoints within the operating model.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  font=\sffamily\scriptsize,
+  box/.style={draw, rounded corners=2pt, align=center, inner sep=2pt},
+  layer/.style={draw, rounded corners=2pt, text width=7.2cm, align=center,
+                minimum height=0.42cm, inner sep=1.8pt},
+  ar/.style={-{Stealth[length=1.4mm]}, thick, gategray}
+]
+\node[layer, fill=gateblue!10, draw=gateblue] (agent) {%
+  \textbf{Cooperative Agent Interface} (CLI toolchain: ideation, drafting, search)};
+
+\node[layer, fill=gategreen!10, draw=gategreen, below=0.14cm of agent] (engine) {%
+  \textbf{Gate Engine \& Audit Journal} (10 phases $\cdot$ append-only override log)};
+
+\node[box, fill=gatered!10, draw=gatered, text width=3.35cm, below=0.14cm of engine.south west, anchor=north west] (inv) {%
+  \textbf{Enforced Invariants} (\badgeblock)\\
+  \tiny Provenance $\cdot$ Data match $\cdot$ Venue rules};
+
+\node[box, fill=gateblue!8, draw=gateblue, text width=3.35cm, below=0.14cm of engine.south east, anchor=north east] (adv) {%
+  \textbf{Advisory Diagnostics} (\badgeadvise)\\
+  \tiny Citation alignment $\cdot$ Prose heuristics};
+
+\node[layer, fill=gategray!12, draw=gategray, below=0.14cm of $(inv.south)!0.5!(adv.south)$] (art) {%
+  \textbf{Project Artifacts \& Registries}\\
+  \tiny Plan $\cdot$ Issues CSV $\cdot$ SQLite Cache $\cdot$ \texttt{ref.bib} $\cdot$ \LaTeX{} $\cdot$ Tarball};
+
+\draw[ar] (agent) -- (engine);
+\draw[ar] (engine.south -| inv.north) -- (inv.north);
+\draw[ar] (engine.south -| adv.north) -- (adv.north);
+\draw[ar] (inv.south) -- (inv.south |- art.north);
+\draw[ar] (adv.south) -- (adv.south |- art.north);
+\draw[-{Stealth[length=1.4mm]}, thick, gategray!70]
+  (art.east) -- ++(0.18,0) |- (engine.east);
+\end{tikzpicture}
+\caption{System architecture and verification tiers: The gate engine enforces mechanically checkable invariants (\textsc{Block}), presents diagnostic heuristics (\textsc{Advise}), and preserves audit trails across physical project artifacts.}
+\label{fig:layers}
+\end{figure}
+
+\section{System Architecture}
+\label{sec:arch}
+
+CameraReady is organized into four architectural layers (Fig.~\ref{fig:layers}): declarative rules, the gate engine, modular verification checkers, and physical project artifacts.
+
+\subsection{Rules as declarative data}
+Discipline profiles are formalized as YAML documents defining mandatory sections, citation conventions, reporting standards, and common domain rejection pitfalls. For example, the computer science profile mandates abstract, introduction, related work, methodology, experiments, limitations, conclusion, and data/code availability statements, while flagging unsupported performance claims and missing baselines. Venue configurations define page limits, column layouts, required sections, review models (single- or double-blind), and authoritative style templates. Table~\ref{tab:coverage} summarizes the configured coverage. Decoupling rules into structured schemas ensures that supporting a new venue requires authoring a configuration file rather than modifying verification code.
+
+\begin{table}[t]
+\centering
+\caption{Provided Configuration Profiles and Specification Schemas}
+\label{tab:coverage}
+\renewcommand{\arraystretch}{1.0}
+\setlength{\tabcolsep}{3.5pt}
+\footnotesize
+\begin{tabular}{@{}lc>{\raggedright\arraybackslash}p{5.2cm}@{}}
+\toprule
+\textbf{Dimension} & \textbf{Count} & \textbf{Configured Profiles and Validation Status} \\
+\midrule
+\rowcolor{rowtint} Disciplines & 8 & CS (exercised); Medicine, Psych., Educ., Bus., Soc. Sci., Hum., Law (schema) \\
+Styles & 6 & IEEE (exercised); APA 7, MLA 9, Vancouver, Chicago (schema) \\
+\rowcolor{rowtint} Venues & 6 & NeurIPS, ICML, ICLR, ACL, AAAI, CVPR (CFP schema) \\
+Formats & 4 & \LaTeX{} (native); DOCX, Markdown, Typst (via Pandoc) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Execution engine and project artifacts}
+The core engine operates as a state machine managing repository state. The state file tracks research topic, discipline, citation style, active phase, designated human approver, and logged overrides. Although Fig.~\ref{fig:gates} illustrates a canonical milestone sequence from ideation to final packaging, scholarly authoring is non-linear: authors and agents iteratively cycle between drafting, literature refinement, and experiments. CameraReady natively supports phase re-entry, issue reopening, and iterative refinement across all phases. Refinement markers protect finalized sections by causing modification scripts to abort if an overwrite is attempted.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  font=\sffamily\tiny,
+  ph/.style={draw=gateblue, fill=gateblue!12, rounded corners=2pt,
+             text width=1.32cm, align=center, minimum height=0.46cm, inner sep=1pt},
+  hu/.style={draw=gatered, fill=gatered!12, rounded corners=2pt,
+             text width=1.32cm, align=center, minimum height=0.46cm, inner sep=1pt},
+  ar/.style={-{Stealth[length=1.4mm]}, gategray, thick}
+]
+% Row 1
+\node[ph] (p1) at (0,0) {\textbf{1.} Ideate};
+\node[ph] (p2) at (1.68,0) {\textbf{2.} Literature};
+\node[hu] (p3) at (3.36,0) {\textbf{3.} Plan*};
+\node[ph] (p4) at (5.04,0) {\textbf{4.} Issues};
+\node[ph] (p5) at (6.72,0) {\textbf{5.} Experiments};
+
+% Row 2
+\node[ph] (p6) at (0,-0.82) {\textbf{6.} Draft};
+\node[ph] (p7) at (1.68,-0.82) {\textbf{7.} Verify};
+\node[ph] (p8) at (3.36,-0.82) {\textbf{8.} Review};
+\node[ph] (p9) at (5.04,-0.82) {\textbf{9.} Revise};
+\node[hu] (p10) at (6.72,-0.82) {\textbf{10.} Final*};
+
+% Arrows Row 1
+\draw[ar] (p1) -- (p2);
+\draw[ar] (p2) -- (p3);
+\draw[ar] (p3) -- (p4);
+\draw[ar] (p4) -- (p5);
+
+% Connector 5 to 6
+\draw[ar] (p5.east) -- ++(0.18,0) -- ++(0,-0.41) -- (-0.85,-0.41) |- (p6.west);
+
+% Arrows Row 2
+\draw[ar] (p6) -- (p7);
+\draw[ar] (p7) -- (p8);
+\draw[ar] (p8) -- (p9);
+\draw[ar] (p9) -- (p10);
+\end{tikzpicture}
+\caption{The ten workflow phases (* indicates mandatory human-in-the-loop sign-off; red phases cannot close autonomously; non-linear re-entry is supported).}
+\label{fig:gates}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{System Gate Inventory by Functional Category}
+\label{tab:gates}
+\renewcommand{\arraystretch}{0.98}
+\setlength{\tabcolsep}{2.5pt}
+\footnotesize
+\begin{tabular}{@{}ll>{\raggedright\arraybackslash}p{3.8cm}c@{}}
+\toprule
+\textbf{Category} & \textbf{Gate Name} & \textbf{Target Invariant / Diagnostic} & \textbf{Type} \\
+\midrule
+\rowcolor{rowtint} \textbf{Workflow} & autopilot & Phase exit predicate holds & \badgeblock \\
+\rowcolor{rowtint} & kickoff & Plan approved before issues & \badgeblock \\
+\rowcolor{rowtint} & rebuttal gate & Review feedback itemized & \badgeblock \\
+\midrule
+\textbf{Citation} & verify citations & 3-layer lookup + review & \badgeblock \\
+& citation style & Required schema metadata & \badgeblock \\
+& BibTeX audit & Duplicates, years, recency & \badgeblock \\
+& citation align & Sentence-abstract lexical overlap & \badgeadvise \\
+\midrule
+\rowcolor{rowtint} \textbf{Integrity} & data gate & Numbers match regenerated data & \badgeblock \\
+\rowcolor{rowtint} & integrity gate & Claims, privacy, bibliography & \badgeblock \\
+\rowcolor{rowtint} & claim registry & Assertion extraction worksheet & \badgeadvise \\
+\rowcolor{rowtint} & prose diagnostic & Repetitive n-gram pattern density & \badgeadvise \\
+\midrule
+\textbf{Venue / Ops} & format gate & Page limit, sections, macros & \badgeblock \\
+& anonymity & Author macros, URLs, emails & \badgeblock \\
+& privacy scan & Sensitive secrets/keys in repo & \badgeblock \\
+& portability & Cross-platform script sanity & \badgeblock \\
+& venue rules & Sync with published CFP guide & \badgeblock \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{The Gate Model}
+\label{sec:gates}
+
+Fig.~\ref{fig:gates} illustrates the ten phases of the authoring workflow. Gate conditions are evaluated directly against physical repository files: \texttt{notes/research-question.md} must exist with non-empty content, the bibliography must meet the configured reference threshold without unresolved keys, and all issues CSV tasks must be completed with verified acceptance criteria.
+
+When an agent requests a transition, the gate script evaluates the filesystem independently of model assertions. If a predicate fails, the gate exits with status code 1 and outputs the specific unmet prerequisite. To handle genuine research exceptions, the system supports a manual override: passing \texttt{--force} with a required justification advances the phase while appending an append-only record to the run journal:
+
+\begin{center}
+\vspace{-3pt}
+\begin{tikzpicture}
+\node[draw=gategray!50, fill=gategray!10, rounded corners=2pt, inner sep=3pt, text width=0.88\columnwidth] {
+\scriptsize\ttfamily\raggedright
+forced past \textquotesingle ideate\textquotesingle\ despite: notes/research-question.md is missing.\\
+Reason: demonstration of override journaling
+};
+\end{tikzpicture}
+\vspace{-3pt}
+\end{center}
+
+Because journal entries are append-only through the CameraReady CLI state machine and cannot be purged via standard commands, deviations remain fully auditable. Table~\ref{tab:gates} summarizes the gate inventory across all functional categories.
+
+\section{Verification Mechanisms}
+\label{sec:verify}
+
+\subsection{The citation path}
+Fig.~\ref{fig:cite} details bibliographic ingestion. While an agent can formulate search queries, the CLI toolchain provides no programmatic path to inject raw BibTeX into \texttt{ref.bib}. Title queries are dispatched to DBLP and CrossRef, while identifier queries route to arXiv; retrieved records are normalized in a local SQLite registry before export. When resolving a query, \texttt{fetch\_bibtex.py} exits with status 0, emitting an explicit \textsc{[verify]} marker with zero BibTeX records upon lookup misses. Blocking enforcement occurs downstream: gates such as \texttt{verify\_citations.py}, \texttt{integrity\_gate.py}, and \texttt{arxiv\_package.py} scan \texttt{ref.bib} and halt with exit code 1 upon detecting any unresolved \textsc{[verify]} tag.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  font=\sffamily\scriptsize,
+  b/.style={draw, rounded corners=2pt, align=center, inner sep=2pt,
+            minimum height=0.42cm, text width=1.85cm},
+  ar/.style={-{Stealth[length=1.4mm]}, thick, gategray}
+]
+\node[b, draw=gateblue, fill=gateblue!10] (agent) {Agent\\(formulates query)};
+\node[b, draw=gategray, fill=gategray!10, right=0.7cm of agent] (api) {DBLP $\cdot$ CrossRef\\arXiv API};
+\node[b, draw=gategreen, fill=gategreen!10, below=0.38cm of api] (reg) {Local Registry\\(SQLite + Cache)};
+\node[b, draw=gategreen, fill=gategreen!10, below=0.38cm of reg] (bib) {\texttt{ref.bib}};
+\node[b, draw=gatered, fill=gatered!8, below=0.38cm of agent] (mem) {Model Memory};
+\node[b, draw=gatered, fill=gatered!12, right=0.7cm of bib] (gate) {Gate Checkers\\(\badgeblock, exit 1)};
+
+\draw[ar] (agent) -- node[above, font=\tiny] {query} (api);
+\draw[ar] (api) -- node[right, font=\tiny] {canonical data} (reg);
+\draw[ar] (reg) -- node[right, font=\tiny] {export} (bib);
+\draw[ar] (bib) -- node[above, font=\tiny] {inspect} (gate);
+\draw[gatered, dashed, thick, -{Stealth[length=1.4mm]}] (mem.south) |- (bib.west);
+
+\node[font=\tiny, text=gatered, align=center] 
+  at ($(mem.south |- bib.west) + (1.0, 0.28)$) 
+  {no CLI code path;\\miss returns [VERIFY]\\(resolver exit 0)};
+
+\draw[-{Stealth[length=1.4mm]}, dashed, gatered] (reg.east) -| node[pos=0.25, above, font=\tiny] {miss: emit tag} (gate.north);
+\end{tikzpicture}
+\caption{Bibliographic dataflow and trust boundary: The dashed path from model memory to \texttt{ref.bib} is absent from the CLI toolchain. Query misses emit \textsc{[verify]} tags (resolver exit 0), which are subsequently trapped by downstream blocking gates (exit 1).}
+\label{fig:cite}
+\end{figure}
+
+\subsection{Resilience to external service disruptions}
+To survive API outages and rate limits, lookups are routed through a persistent local cache indexed by query hash. In network-isolated settings, users can configure an offline JSON Lines corpus of pre-indexed papers via \texttt{--offline}. Cached records strictly corroborate previously verified citations; unindexed queries in offline mode produce unverified markers rather than fabricated entries.
+
+\subsection{Reconciling empirical data and reported metrics}
+To prevent numerical drift, the data gate links LaTeX tables and figures to data-generation scripts. The gate re-executes the script, extracts numerical tokens within the associated float, and confirms that reported numbers match regenerated outputs within numerical tolerance, excluding formatting numerals.
+
+\subsection{Semantic citation alignment}
+To catch contextual misattributions where a cited paper exists but does not support the citing claim, the alignment checker computes lexical and TF-IDF overlap between citing sentences and the cited abstract. Operating as an advisory diagnostic (\badgeadvise), low similarity scores flag citations for manual review without asserting automated judgment over conceptual validity.
+
+\subsection{Claim extraction, prose diagnostics, and packaging}
+The claim extractor parses manuscript prose into a structured registry of factual assertions for author review. The integrity gate requires explicit human sign-off on all claims before packaging. Prose diagnostics evaluate repetitive n-grams informatively without blocking compilation. The format gate validates venue page limits and sections, the anonymity checker flags author identifiers, and the packaging script bundles verified sources with inlined bibliographies for arXiv pre-submission.
+
+\section{Software Verification and Self-Application}
+\label{sec:eval}
+
+Evaluations were conducted on a Windows 10 workstation (build 10.0.19045, Python 3.13.9, MiKTeX). All reproduction commands and raw outputs are documented in \path{notes/experiment-results.md}. We evaluate CameraReady through software verification of its implementation (545 unit tests across 34 modules), synthetic negative control fault injections, an operational comparison of bibliographic provenance under live API conditions, and an end-to-end dogfooding self-application case study. Gate enforcement is evaluated under injected faults; running controlled comparison protocols against ungated agent baselines remains future work.
+
+\begin{table}[t]
+\centering
+\caption{Negative Control Interceptions under Fault Injection}
+\label{tab:neg}
+\renewcommand{\arraystretch}{0.88}
+\setlength{\tabcolsep}{2.5pt}
+\scriptsize
+\begin{tabular}{@{} >{\raggedright\arraybackslash}p{2.65cm} >{\raggedright\arraybackslash}p{4.25cm} c @{}}
+\toprule
+\textbf{Injected Fault Condition} & \textbf{Gate Diagnostic / Interception} & \textbf{Exit} \\
+\midrule
+\rowcolor{rowtint} Ideate without RQ & Flags missing \texttt{research-question.md} & \textcolor{gatered}{\codeexit{1}} \\
+Kickoff without approval & Halts: plan approval checkbox unmarked & \textcolor{gatered}{\codeexit{1}} \\
+\rowcolor{rowtint} Forced override w/ reason & Advances phase, logs rationale to journal & \textcolor{gategreen}{\codeexit{0}} \\
+Missing IEEE \texttt{journal} & Rejects entry: mandatory key missing & \textcolor{gatered}{\codeexit{1}} \\
+\rowcolor{rowtint} Signed paper anonymity & Flags 2 author macros, 1 URL (3 blockers) & \textcolor{gatered}{\codeexit{1}} \\
+NeurIPS format breach & Flags missing sections and style & \textcolor{gatered}{\codeexit{1}} \\
+\rowcolor{rowtint} Unadjudicated claims & Halts packaging: claim registry unapproved & \textcolor{gatered}{\codeexit{1}} \\
+Fabricated paper title & Emits \textsc{[verify]}; 0 BibTeX (resolver 0; gate 1) & \textcolor{gategreen}{\codeexit{0}} \\
+\rowcolor{rowtint} Mismatched table numbers & Traps discrepancy between prose and data & \textcolor{gatered}{\codeexit{1}} \\
+Failing analysis script & Catches non-zero pipeline exit code & \textcolor{gatered}{\codeexit{1}} \\
+\rowcolor{rowtint} Untracked rebuttal point & Halts: unmapped reviewer item & \textcolor{gatered}{\codeexit{1}} \\
+Stale venue page limits & Catches outdated page count constraint & \textcolor{gatered}{\codeexit{1}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Three-Layer Bibliographic Verification Stability Across Six Remote Lookup Runs (Skipped denotes transient remote lookup throttling, not hallucination; union reflects distinct entries verified across runs).}
+\label{tab:verify}
+\renewcommand{\arraystretch}{0.88}
+\setlength{\tabcolsep}{3.2pt}
+\scriptsize
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Run} & \textbf{Verified} & \textbf{Suspicious} & \shortstack{\textbf{Hallucination}\\\scriptsize\textbf{Verdict}} & \shortstack{\textbf{Skipped}\\\scriptsize(Throttled / 429)} \\
+\midrule
+\rowcolor{rowtint} Run 1 & 39 & 0 & 0 & 6 \\
+Run 2 & 38 & 0 & 0 & 7 \\
+\rowcolor{rowtint} Run 3 & 41 & 0 & 0 & 4 \\
+Run 4 & 38 & 0 & 0 & 7 \\
+\rowcolor{rowtint} Run 5 & 45 & 0 & 0 & 0 \\
+Run 6 & 45 & 0 & 0 & 0 \\
+\midrule
+\rowcolor{gateblue!12} \textbf{Union (1--6)} & \textbf{45} & \textbf{0} & \textbf{0} & \textbf{0 (complete)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Unit verification and gate determinism}
+The test suite spans 545 unit tests across 34 modules, completing in 47.9\,s (100\% pass rate). Continuous integration validates every commit across a 3-OS (Ubuntu, macOS, Windows) $\times$ 2-Python-version matrix with CLI smoke tests. The portability checker verified zero OS-specific assumptions across 218 source files, and the specification validator reported zero configuration warnings. Across the framework's 68 scripts, 62 implement fail-stop non-zero exit codes; the worked example compiles in 5.8\,s.
+
+\subsection{Gate enforcement under negative controls}
+We evaluated gate enforcement against twelve synthetic negative control fixtures representing intentional violations (Table~\ref{tab:neg}). In all blocking cases, the gate intercepted non-compliant artifacts and exited with status 1. Tested with a fabricated title (``Gated Diffusion Transformers for Bibliographic Provenance Repair''), the query emitted an unresolved marker with zero BibTeX records. The data gate similarly intercepted injected discrepancies (0.88 reported vs. 0.71 produced).
+
+\subsection{Heuristic checker refinements}
+Early claim extractors tokenized raw LaTeX markup into 48 noisy claims (including a vector graphic); an AST cleaning pre-pass reduced this to 26 substantive assertions. Likewise, transitioning prose logic checks to whole-document TF-IDF cosine similarity reduced false-positive topical disconnect warnings from 14 to 1 on this manuscript.
+
+\subsection{Provenance by construction vs. post-hoc screening}
+In this case study, all 45 cited references were resolved via canonical arXiv queries (recorded with their persistent identifiers in \path{citation-provenance.jsonl}) and exported into \texttt{ref.bib}. To test post-hoc consistency, we executed the three-layer verifier across six afternoon runs under normal network conditions (Table~\ref{tab:verify}). Under the stated registry criterion, no identity-level fabricated bibliographic records were observed. However, verified entries fluctuated between 38 and 45 due to transient upstream throttling (recorded in \path{notes/experiment-results.md}). Tested with three fabricated citations lacking identifiers, the verifier returned skipped rather than hallucination verdicts. While declining to guess is sound, inconclusive verdicts provide no safety guarantee. Persisting canonical provenance in SQLite at ingestion avoids re-resolution volatility and shields workflows from remote outages.
+
+\subsection{Dogfooding self-application case study}
+This manuscript was produced end-to-end using CameraReady as a dogfooding case study through ideation, literature gathering, plan approval, issues tracking (expanding from 38 to 45 tasks), experiments, and drafting. During review, the rebuttal gate intercepted five unaddressed comments, automatically mapped to tracked issues via \texttt{--emit-issues}. One manual override was exercised during drafting when 16 optional presentation tasks were skipped; the transition and rationale were permanently recorded in the run journal.
+
+\section{Discussion, Limitations, and Future Work}
+\label{sec:discuss}
+
+\noindent\textbf{Validity, trust, and bounds.} CameraReady enforces syntactic and bibliographic invariants; evaluating scientific novelty or conceptual validity remains the author's responsibility~\cite{miyai2026paper}. The framework assumes a cooperative agent; isolation against untrusted shell agents requires OS-level sandboxing. Textual heuristics provide diagnostic assistance rather than definitive verdicts, while local SQLite caching mitigates external API dependencies.\\
+\noindent\textbf{Controlled benchmarking and future work.} While this report verifies gate correctness under synthetic fault injection, controlled empirical benchmarking of authoring error rates against unconstrained baselines (formalized in \texttt{benchmark\_compare.py}) remains future work, alongside neural entailment for citation alignment and containerized execution recipes.
+
+\section{Conclusion}
+
+Citation hallucination, numerical drift, and formatting violations are structural vulnerabilities of unconstrained authoring agents. CameraReady demonstrates that mechanically checkable manuscript invariants can be deterministically enforced by embedding verification gates directly into the authoring lifecycle. Decoupling parametric memory from the bibliography, conditioning phase transitions on filesystem predicates, and formalizing venue rules as schemas remove the supported CLI path for injecting unverified bibliographic records while preserving transparent boundaries for advisory heuristics and scholarly human judgment. Controlled empirical comparisons against unconstrained agent baselines remain future work.
+
+\vspace{-4pt}
+\section*{Data and Code Availability}
+\vspace{-2pt}
+{\raggedright\footnotesize
+The complete system is open source (MIT license) at \url{https://github.com/e96031413/camera-ready}. Reproduction commands and raw outputs are in \path{notes/experiment-results.md}. Provenance records for all 45 references (registry sources, canonical identifiers, resolution timestamps, and SHA-256 record hashes) are in \path{citation-provenance.jsonl}.\par}
+
+\newpage
+\label{ReferencesStart}
+\IEEEtriggeratref{20}
+\bibliographystyle{ieeetr}
+\bibliography{ref}
+
+\end{document}

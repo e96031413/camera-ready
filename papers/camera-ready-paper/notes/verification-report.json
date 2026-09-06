@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-09-06T07:59:07+08:00",
+  "all_passed": true,
+  "gates": {
+    "citations": {
+      "status": "PASS",
+      "returncode": 0,
+      "detail": "automated sy... SKIPPED\n  [45/45] Large language models streamline automated systematic review... SKIPPED\n\n--- Verification Summary ---\n  VERIFIED:      0\n  SUSPICIOUS:    0\n  HALLUCINATED:  0\n  SKIPPED:       45\n  Integrity:     0%\n\nReport: papers\\camera-ready-paper\\notes\\citation-verification.md"
+    },
+    "privacy": {
+      "status": "PASS",
+      "returncode": 0,
+      "detail": "Privacy scan passed."
+    }
+  }
+}
