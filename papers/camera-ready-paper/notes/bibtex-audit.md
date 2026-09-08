@@ -1,6 +1,6 @@
 # BibTeX Audit
 
-- Created at: 2026-09-05T18:59:51+08:00
+- Created at: 2026-09-06T10:53:00+08:00
 - As-of year: 2026
 - Recent window (years): 3 (threshold: ≥ 2024)
 - Min recent ratio (total): 0.70

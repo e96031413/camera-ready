@@ -9,7 +9,7 @@ in E6). Every command below is in the repository; nothing here is simulated.
 covering all verification gates, schemas, CLI tools, and failure modes.
 
 ## E2 — Repository-level self-checks
-- `portability_check.py --docs` -> clean, 182 files scanned.
+- `portability_check.py --docs` -> clean, 220 files scanned (102 Python source and test modules across `scripts/` and `tests/`, 118 documentation files).
 - `skill_spec_check.py` -> conforms to spec, 0 warnings.
 
 ## E3 — Gates refuse to advance (negative controls)
@@ -74,7 +74,7 @@ is a claim about where verification is placed, not about detector quality.
 
 ## E7 — Coverage
 8 discipline profiles, 6 citation styles, 6 conference venue configs, 50
-reference documents, 62 scripts of which 57 can exit non-zero (i.e. can block).
+reference documents, 68 scripts of which 65 are standalone CLI entry points; all 65 implement fail-stop non-zero exit codes (the remaining 3 — `paper_utils.py`, `codebase_snapshot_core.py`, `codebase_snapshot_render.py` — are library modules imported by other scripts).
 
 ## Threats to validity
 - Single machine, single OS; no cross-platform timing.

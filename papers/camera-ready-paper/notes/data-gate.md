@@ -1,7 +1,7 @@
 # Data Gate Report
 
-- Created at: 2026-09-06T09:55:51+08:00
-- Commands re-run: no (--no-run)
+- Created at: 2026-09-06T10:52:53+08:00
+- Commands re-run: yes
 - Bindings checked: 1
 
 | Float | Verdict | Detail |
